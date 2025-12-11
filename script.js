@@ -847,29 +847,24 @@ let currentPlayingButton = null; // 跟踪当前正在播放的按钮
 // ... (您的其他全局变量和配置)
 
 const globalConfig = {
-    minimaxVoice: { // <<< 新增：Minimax 语音设置
-        apiUrl: 'https://api.minimaxi.com/v1/t2a_v2',
-        apiKey: '',
-        groupId: '',
-        ttsModel: '',
-        availableModels: [], // 存储拉取到的模型列表
-    },
-    database: {
-        supabaseUrl: '',
-        supabaseKey: '',
-        tableName: 'user_data',
-        client: null
-    },
-    storage: {
-        bucketName: 'icons',
-        uploadPath: 'app-icons/',
-        maxFileSize: 5
-    },
+
     customIcons: {},
     savedWidgets: [],
     showAvatarsInSweetheartChat: false,
     sweetheartReplyMode: 'multi', // 默认设为多信息模式
 };
+
+// ============================================
+// 🔧 [核心配置] 请在此处填入您的真实 Key
+// ============================================
+const MINIMAX_CONFIG = {
+    API_URL: "https://api.minimaxi.com/v1/t2a_v2",
+    API_KEY: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJHcm91cE5hbWUiOiLmvZjlrp3kvIoiLCJVc2VyTmFtZSI6Iua9mOWuneS8iiIsIkFjY291bnQiOiIiLCJTdWJqZWN0SUQiOiIxOTU2NzQwNzg2NjQ5MzA5Njc4IiwiUGhvbmUiOiIxNTkxODQ3MDYxMyIsIkdyb3VwSUQiOiIxOTU2NzQwNzg2NjQwOTIxMDcwIiwiUGFnZU5hbWUiOiIiLCJNYWlsIjoiIiwiQ3JlYXRlVGltZSI6IjIwMjUtMTEtMjUgMjA6Mzk6MjAiLCJUb2tlblR5cGUiOjEsImlzcyI6Im1pbmltYXgifQ.Qb0VkrL-Qmvl-LGpcNGwysnWqVl545InAX4udsEYkfutN6_iEdVSJruxGj0FpmTXJKPQJpuQjtVM5jSagLhhBhNaI4DNmR4pIV_9vkk0T9LxGT7Rul1BsdlR-aUyKxwDLBjH8o2MYkWFuv_dOb7aXawYMeQtNJjV6QRUA5kILVw9MQb0Bs2th_BzYlTJ-S1nbT0jAVAb_gb_ThuRfpg2wccSaft1m5Tr3n3sITLh5dpQy_NWJcvkfOSvKVCfLODJOJHwTh5JgMxHCNFWsaY-3a0fAqN9VWtVP7Spt5E1BPl3hZihDY2iixFN7d3UVZJOEzoQSPjsaNH01He4l4GZvQ",       // 🔴 请替换为您的 API Key
+    GROUP_ID: "1956740786640921070",     // 🔴 请替换为您的 Group ID
+    MODEL: "speech-01-turbo",                // 默认模型
+    DEFAULT_VOICE_ID: "male-qn-qingse"       // 统一使用的声音 ID (听书声音)
+};
+
 
 
 function setupSweetheartReplyModeSelector() {
@@ -1968,112 +1963,85 @@ function hexToUint8Array(hexString) {
 
 // 【最终健壮版】播放 TTS 消息，已优化全局音频控制
 // 新版本：不再需要 button 参数，使用全局提示框
+// [修改版] 播放 TTS 消息 (统一使用听书声音)
 async function playTtsMessage(sender, contactId, messageIndex, isSweetheart = false) {
-    // 如果当前有音频正在播放，则先停止它
     if (currentAudio) {
         currentAudio.pause();
     }
 
-    const voiceConfig = globalConfig.minimaxVoice;
-    if (!voiceConfig.apiUrl || !voiceConfig.apiKey || !voiceConfig.groupId || !voiceConfig.ttsModel) {
-        showErrorModal('语音配置不完整', '请在“设置 > 语音设置”中完整配置 Minimax TTS。');
+    // 1. 检查配置是否已填写
+    if (MINIMAX_CONFIG.API_KEY.includes("YOUR_REAL")) {
+        showErrorModal('配置缺失', '请在代码 script.js 顶部的 MINIMAX_CONFIG 中填入真实的 API Key 和 Group ID。');
         return;
     }
 
-    // 根据 isSweetheart 标志选择正确的聊天记录
     const historyKey = isSweetheart ? 'phoneSweetheartChatHistory' : 'phoneChatHistory';
     const chatHistory = JSON.parse(localStorage.getItem(historyKey) || '{}');
     const message = chatHistory[contactId]?.[messageIndex];
 
-    if (!message || typeof message.text !== 'string' || !message.text.trim() || message.text.includes('<img') || message.text.includes('<render>')) {
-        showErrorModal('无法朗读', '此消息不是纯文本或内容为空。');
+    if (!message || typeof message.text !== 'string' || !message.text.trim()) {
+        showErrorModal('无法朗读', '此消息内容为空。');
         return;
     }
 
-    let voiceId = '';
-    if (sender === 'user') {
-        voiceId = userProfile.userVoiceId || 'male-qn-qingse';
-    } else {
-        const contactList = isSweetheart ? sweetheartContactsData : contactsData;
-        const targetContact = contactList.find(c => c.id === contactId);
-        voiceId = targetContact?.voiceId || 'female-qn-yuxin';
-    }
+    // 2. 统一使用配置中的声音 ID
+    const voiceId = MINIMAX_CONFIG.DEFAULT_VOICE_ID;
 
-    // 使用一个div来解析HTML并提取纯文本
+    // 提取纯文本
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = message.text;
     const messageText = tempDiv.textContent || tempDiv.innerText;
 
-    // 显示加载提示
-    showSuccessModal('朗读中...', '正在为您合成语音，请稍候...', 99999); // 使用一个很长的时间，稍后手动关闭
+    showSuccessModal('朗读中...', '正在合成语音...', 99999);
 
     try {
-        const response = await fetch(`${voiceConfig.apiUrl}?GroupId=${voiceConfig.groupId}`, {
+        const response = await fetch(`${MINIMAX_CONFIG.API_URL}?GroupId=${MINIMAX_CONFIG.GROUP_ID}`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${voiceConfig.apiKey}`},
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${MINIMAX_CONFIG.API_KEY}`
+            },
             body: JSON.stringify({
-                model: voiceConfig.ttsModel, text: messageText, stream: false, output_format: 'hex',
-                voice_setting: {voice_id: voiceId, speed: 1, vol: 1, pitch: 0}
+                model: MINIMAX_CONFIG.MODEL,
+                text: messageText,
+                stream: false,
+                output_format: 'hex',
+                voice_setting: {
+                    voice_id: voiceId,
+                    speed: 1,
+                    vol: 1,
+                    pitch: 0
+                }
             })
         });
 
-        if (!response.ok) {
-            throw new Error(`API请求失败: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`API请求失败: ${response.status}`);
         const data = await response.json();
-        if (data.base_resp.status_code !== 0 || !data.data?.audio) {
-            throw new Error(`语音合成失败: ${data.base_resp?.status_msg || '未知错误'}`);
-        }
+        if (data.base_resp.status_code !== 0) throw new Error(data.base_resp.status_msg);
 
         const audioBytes = hexToUint8Array(data.data.audio);
-
-
-        // --- 从这里继续 ---
         const audioBlob = new Blob([audioBytes], {type: 'audio/mpeg'});
         const audioObjectUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioObjectUrl);
-        currentAudio = audio; // 存储为全局变量，方便控制
+        currentAudio = audio;
 
-        // 定义一个函数，用于关闭加载提示框
         const hideLoadingModal = () => {
             const modal = document.getElementById('successModal');
-            if (modal && modal.classList.contains('show')) {
-                modal.classList.remove('show');
-                setTimeout(() => modal.style.display = 'none', 300);
-            }
+            if (modal) modal.classList.remove('show');
         };
 
-        // 播放结束或暂停时
-        const onAudioEnd = () => {
-            hideLoadingModal();
-            URL.revokeObjectURL(audioObjectUrl); // 释放内存
-            if (currentAudio === audio) {
-                currentAudio = null;
-            }
-        };
-
-        audio.onplay = () => {
-            // 开始播放时，可以先关闭加载提示
-            hideLoadingModal();
-        };
-
-        audio.onended = onAudioEnd;
-        audio.onpause = onAudioEnd; // 暂停也算结束，清理资源
-        audio.onerror = () => {
-            showErrorModal('播放失败', '音频文件损坏或无法播放。');
-            onAudioEnd();
-        };
-
+        audio.onplay = hideLoadingModal;
+        audio.onended = () => { hideLoadingModal(); URL.revokeObjectURL(audioObjectUrl); currentAudio = null; };
+        audio.onerror = () => { showErrorModal('播放失败', '音频文件损坏。'); hideLoadingModal(); };
         audio.play();
 
     } catch (error) {
         console.error('朗读失败:', error);
         showErrorModal('朗读失败', error.message);
-        // 确保出错时也关闭加载提示
-        const modal = document.getElementById('successModal');
-        if (modal) modal.classList.remove('show');
+        document.getElementById('successModal').classList.remove('show');
     }
 }
+
 
 /**
  * [最终修复版] 为指定消息元素绑定长按和右键菜单事件
@@ -2692,16 +2660,54 @@ function createMessageBubble(message) {
 // =================================================================
 
 // 步骤一：将 const 修改为 let，以便后续从 localStorage 加载数据
+// =================================================================
+// 修复 1: 修改 ID，确保长度大于 2 位，且只包含字母数字下划线
+// =================================================================
+
+// 步骤一：将 const 修改为 let，以便后续从 localStorage 加载数据
+// 【学校学习场景 - 内置角色扩展】
 let contactsData = [
-    {id: 'contact_01', name: '代码助手', avatar: '🤖', status: '为您服务'}, // 修改 ID: 1 -> contact_01
+    {
+        id: 'contact_01',
+        name: '代码助手',
+        avatar: '🤖',
+        status: '我是你的AI编程助手，有代码问题随时问我。'
+    },
+    {
+        id: 'school_teacher_li',
+        name: '李老师(语文)',
+        avatar: '👩‍🏫',
+        status: '腹有诗书气自华。同学，关于作文或古诗词有什么不理解的吗？我是李老师，随时为你解答。',
+        voiceId: 'female-qn-yuxin' // 知性女声
+    },
+    {
+        id: 'school_math_rep',
+        name: '数学课代表阿伟',
+        avatar: '🤓',
+        status: '数学其实就是逻辑游戏。哪道题卡住了？发给我，我帮你看看思路。',
+        voiceId: 'male-qn-qingse' // 青涩男声
+    },
+    {
+        id: 'school_teacher_smith',
+        name: 'Mr. Smith (English)',
+        avatar: '👨‍🦰',
+        status: 'Hello! Don\'t be shy, speaking is the key to learning English. Let\'s chat! (我是你的外教Smith，鼓励你多用英语交流)',
+        voiceId: 'male-qn-jingying' // 精英男声
+    },
+    {
+        id: 'school_monitor',
+        name: '学习委员',
+        avatar: '👧',
+        status: '今天的作业都记下来了吗？还有下周的考试复习计划制定得怎么样了？别偷懒哦！',
+        voiceId: 'female-qn-tianmei' // 甜美女声
+    }
 ];
 
-// ========== 新增：独立的密友数据数组 ==========
+
+// ========== 修正后的密友数据数组 (去重) ==========
 let sweetheartContactsData = [
-    {id: 'contact_01', name: '代码助手', avatar: '🤖', status: '为您服务'}, // 修改 ID
-    {id: 'contact_02', name: '平平无奇的朋友', avatar: '😊', status: '你好呀'}, // 修改 ID: 2 -> contact_02
     {
-        id: 'SH_default_001', // 这个 ID 符合规范，无需修改
+        id: 'SH_default_001',
         name: '贴心小助手',
         status: '随时准备好聆听你的心事~',
         avatar: '💖',
@@ -2709,8 +2715,70 @@ let sweetheartContactsData = [
         relationship: '最好的朋友',
         voiceId: 'female-qn-yuxin',
         boundWorldbooks: []
+    },
+    {
+        id: 'SH_school_senior',
+        name: '温柔学长',
+        avatar: 'https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1762916602985_qdqqd_avatar_boy1.png',
+        status: '累了吗？把肩膀借你靠一会儿。',
+        personality: '稳重, 治愈, 有安全感',
+        occupation: '学生会主席',
+        relationship: '暗恋对象 / 邻家大哥哥',
+        history: '一直在默默关注你，会在你考试失利时给你递热牛奶。',
+        voiceId: 'male-qn-qingse',
+        boundWorldbooks: []
+    },
+    {
+        id: 'SH_school_mate',
+        name: '同桌妙妙',
+        avatar: 'https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1762916655123_qdqqd_avatar_girl1.png',
+        status: '别愁眉苦脸啦，放学请你吃关东煮！',
+        personality: '活泼, 讲义气, 话痨',
+        occupation: '高中生',
+        relationship: '从小一起长大的死党',
+        history: '帮你抄过作业，也和你一起在走廊罚过站。',
+        voiceId: 'female-qn-tianmei',
+        boundWorldbooks: []
+    },
+    {
+        id: 'SH_psychology_senior', // 🔥 修改ID，防止与小助手重复
+        name: '心理社学姐',
+        status: '秘密说出来就不重了，我会替你保密的。',
+        avatar: '👩‍🏫',
+        personality: '知性, 善解人意, 温柔',
+        occupation: '心理社社长',
+        relationship: '值得信赖的倾听者',
+        history: '在学校天台发现过哭泣的你，从此成为了你专属的树洞。',
+        voiceId: 'female-qn-yuxin',
+        boundWorldbooks: []
+    },
+    {
+        id: 'SH_school_hunk',
+        name: '高冷校草',
+        avatar: '😎',
+        status: '啧，又是谁欺负你了？报我名字。',
+        personality: '嘴硬心软, 霸道, 护短',
+        occupation: '篮球队队长',
+        relationship: '欢喜冤家',
+        history: '虽然总是嫌你笨，但每次你需要帮忙时他跑得比谁都快。',
+        voiceId: 'male-qn-jingying',
+        boundWorldbooks: []
+    },
+    {
+        id: 'SH_school_junior',
+        name: '元气学妹',
+        avatar: '🎀',
+        status: '前辈，这道题我不会，可以教教我吗？(星星眼)',
+        personality: '天真, 热情, 崇拜你',
+        occupation: '广播站播音员',
+        relationship: '你的小迷妹',
+        history: '每天中午都会在广播里给你点歌，虽然从来不敢说是谁点的。',
+        voiceId: 'female-qn-tianmei',
+        boundWorldbooks: []
     }
 ];
+
+
 
 // ========== 联系人库多选功能全局变量 ==========
 let libraryOnlyContactsData = []; // 仅存在于联系人库的联系人
@@ -2732,7 +2800,6 @@ function openWorldSelect() {
     // 直接跳转到密友列表
     openSweetheartList();
 }
-
 
 
 /**
@@ -2827,7 +2894,6 @@ function selectDefaultMap() {
 }
 
 
-
 /**
  * 保存世界数据到localStorage
  */
@@ -2839,22 +2905,31 @@ function saveWorldsData() {
     }
 }
 
-// 加载世界数据（增强版：确保默认世界有地图）
+// [修正版] 加载世界数据（确保包含所有默认密友ID）
 function loadWorldsData() {
     try {
         const saved = localStorage.getItem('phoneWorldsData');
 
-        // 🗺️ 这里定义你的内置默认地图链接
+        // 🗺️ 默认地图链接
         const defaultMapUrl = 'https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1760979959274_qdqqd_m9jrpo.jpg';
 
-        // 定义默认世界对象（包含默认地图）
+        // 🔥 核心修复：把所有内置密友的ID都加到这里！
+        // 这样新用户第一次打开时，这些人才会显示出来
         const defaultWorld = {
             id: 'DEFAULT_WORLD',
             name: '默认世界',
             description: '初始设定的世界',
             icon: '🌏',
-            mapUrl: defaultMapUrl, // ✨ 确保新建时有地图
-            contacts: ['1', '2', 'SH_default_001'],
+            mapUrl: defaultMapUrl,
+            // 👇 这里把所有 SH_ 开头的ID都补全了
+            contacts: [
+                '1', '2',
+                'SH_default_001',
+                'SH_school_senior',
+                'SH_school_mate',
+                'SH_school_hunk',
+                'SH_school_junior'
+            ],
             worldbooks: [],
             timestamp: Date.now()
         };
@@ -2862,35 +2937,48 @@ function loadWorldsData() {
         if (saved) {
             worldsData = JSON.parse(saved);
 
-            // 🔥 核心修复逻辑：检查现有的默认世界是否丢失了地图
+            // 🔥 自动修复逻辑：如果老用户已有的默认世界缺少这些ID，自动给它补上
             const existingDefaultWorld = worldsData.find(w => w.id === 'DEFAULT_WORLD');
             if (existingDefaultWorld) {
+                let hasChanges = false;
+
+                // 1. 补全地图
                 if (!existingDefaultWorld.mapUrl) {
                     existingDefaultWorld.mapUrl = defaultMapUrl;
-                    saveWorldsData(); // 立即保存修复
-                    console.log('✅ 已自动为默认世界补全内置地图');
+                    hasChanges = true;
+                }
+
+                // 2. 补全缺失的默认密友ID
+                const missingIds = ['SH_school_senior', 'SH_school_mate', 'SH_school_hunk', 'SH_school_junior'];
+                missingIds.forEach(id => {
+                    if (!existingDefaultWorld.contacts.includes(id)) {
+                        existingDefaultWorld.contacts.push(id);
+                        hasChanges = true;
+                    }
+                });
+
+                if (hasChanges) {
+                    saveWorldsData();
+                    console.log('✅ 已自动修复默认世界的地图和联系人列表');
                 }
             }
 
-            // 如果数据完全错乱导致没有任何世界，重新推入默认世界
             if (worldsData.length === 0) {
                 worldsData.push(defaultWorld);
                 saveWorldsData();
             }
         } else {
-            // 首次安装初始化
+            // 首次安装
             worldsData.push(defaultWorld);
             saveWorldsData();
 
-            // 🔥 关键：首次加载时，预设默认地图的地点数据 (王都、魔法学院等)
+            // 预设地图地点
             const mapKey = `mapPins_${defaultWorld.id}`;
             if (!localStorage.getItem(mapKey)) {
-                // 使用你代码里定义的 DEFAULT_MAP_LOCATIONS
                 localStorage.setItem(mapKey, JSON.stringify(DEFAULT_MAP_LOCATIONS));
             }
         }
 
-        // 强制锁定到第一个世界（防止 currentWorldId 为空）
         if (!currentWorldId) {
             currentWorldId = worldsData[0].id;
             localStorage.setItem('currentWorldId', currentWorldId);
@@ -2902,7 +2990,6 @@ function loadWorldsData() {
         console.error('加载世界数据失败:', e);
     }
 }
-
 
 
 
@@ -3134,39 +3221,6 @@ document.addEventListener('click', function (e) {
     }
 });
 
-function initSupabaseClient() {
-    const {supabaseUrl, supabaseKey} = globalConfig.database;
-
-    if (!supabaseUrl || !supabaseKey) {
-        return null;
-    }
-
-    globalConfig.database.client = {
-        from: (table) => ({
-            select: () => Promise.resolve({data: [], error: null}),
-            insert: (data) => Promise.resolve({data, error: null}),
-            update: (data) => Promise.resolve({data, error: null}),
-            delete: () => Promise.resolve({data: null, error: null})
-        }),
-        storage: {
-            from: (bucket) => ({
-                upload: (path, file) => {
-                    console.log(`上传文件到: ${bucket}/${path}`);
-                    return Promise.resolve({
-                        data: {path: `${bucket}/${path}`},
-                        error: null
-                    });
-                },
-                getPublicUrl: (path) => ({
-                    data: {publicUrl: `https://example.supabase.co/storage/v1/object/public/${path}`}
-                })
-            })
-        }
-    };
-
-    return globalConfig.database.client;
-}
-
 const dbAPI = {
     async saveData(data) {
         if (!globalConfig.database.client) {
@@ -3324,12 +3378,18 @@ const getTouch = (e) => e.touches?.[0] || e;
 const getChangedTouch = (e) => e.changedTouches?.[0] || e;
 
 function positionElement(el, row, col, colspan = 1, rowspan = 1) {
-    const ROW_HEIGHT_PX = 94;
-    const GAP_PX = 14;
+    // === 修改开始 ===
+    // 增加行高以适应更大的图标 (76px图标 + 文字 + 间距)
+    const ROW_HEIGHT_PX = 110;
+    // 减小间距以匹配CSS中的 gap: 8px
+    const GAP_PX = 8;
+    // === 修改结束 ===
+
     const leftPercent = col * 25;
     const widthPercent = colspan * 25;
     const topPx = row * (ROW_HEIGHT_PX + GAP_PX);
     const heightPx = (rowspan * ROW_HEIGHT_PX) + ((rowspan - 1) * GAP_PX);
+
     Object.assign(el.style, {
         left: `${leftPercent}%`,
         width: `${widthPercent}%`,
@@ -3386,24 +3446,7 @@ function createSettingsPageHTML() {
         <div class="settings-content">
             <div class="settings-section">
                 <div class="section-title">配置</div>
-                <!-- 2. 语音设置 -->
-                <div class="settings-item" onclick="openVoiceSettingsPage()">
-                    <div class="settings-icon icon-voice"></div> <!-- 新增：图标类 -->
-                    <div class="settings-info">
-                        <div class="settings-label">语音设置</div>
-                        <div class="settings-desc">配置语音合成（TTS）功能</div>
-                    </div>
-                    <div class="settings-arrow">›</div>
-                </div>
-                <!-- 2. 数据库设置 -->
-                <div class="settings-item" onclick="openConfig('database')">
-                    <div class="settings-icon icon-database"></div>
-                    <div class="settings-info">
-                        <div class="settings-label">数据库设置</div>
-                        <div class="settings-desc">配置Supabase数据库</div>
-                    </div>
-                    <div class="settings-arrow">›</div>
-                </div>
+               
                 <!-- 3. 全屏模式 -->
                 <div class="settings-item">
                     <div class="settings-icon icon-fullscreen"></div>
@@ -3418,15 +3461,7 @@ function createSettingsPageHTML() {
                         </label>
                     </div>
                 </div>
-                <!-- 4. 云存储设置 -->
-                <div class="settings-item" onclick="openConfig('storage')">
-                    <div class="settings-icon icon-storage"></div>
-                    <div class="settings-info">
-                        <div class="settings-label">云存储设置</div>
-                        <div class="settings-desc">配置Supabase Storage</div>
-                    </div>
-                    <div class="settings-arrow">›</div>
-                </div>
+                
                 <!-- 5. 联系人库 -->
                 <div class="settings-item" onclick="openContactLibrary('edit')">
                     <div class="settings-icon icon-contacts"></div>
@@ -3621,176 +3656,9 @@ function closeSettings() {
     }, 350); // 350ms 对应 CSS 中的 0.35s
 }
 
-function openVoiceSettingsPage() {
-    // 确保先关闭其他可能打开的页面
-    document.querySelectorAll('.config-page.show').forEach(page => {
-        if (page.id !== 'voiceSettingsPage') page.classList.remove('show');
-    });
-    const voiceSettingsPage = document.getElementById('voiceSettingsPage');
-    voiceSettingsPage.style.zIndex = '1010'; // 确保层级够高
-    voiceSettingsPage.classList.add('show');
-    // 填充已保存的配置
-    document.getElementById('minimaxApiUrl').value = globalConfig.minimaxVoice.apiUrl;
-    document.getElementById('minimaxApiKey').value = globalConfig.minimaxVoice.apiKey;
-    document.getElementById('minimaxGroupId').value = globalConfig.minimaxVoice.groupId;
-    // // ⚠️ 原始这里只调用了 render，没有调用 fetch 导致模型列表为空
-    // // 修正：在打开页面时就尝试拉取并渲染模型列表
-    fetchMinimaxTtsModels(); // <--- 新增这行代码！
-    // 渲染模型列表（确保即使 fetch 失败或返回空，也至少渲染默认选项）
-    renderMinimaxTtsModels(globalConfig.minimaxVoice.availableModels, globalConfig.minimaxVoice.ttsModel);
-}
-
-function closeVoiceSettingsPage() {
-    document.getElementById('voiceSettingsPage').classList.remove('show');
-}
 
 
-function showApiStatus(message, type) {
-    const status = document.getElementById('apiStatus');
-    status.textContent = message;
-    status.style.color = type === 'error' ? '#dc3545' : '#28a745';
-}
 
-function openConfig(type) {
-    const configId = type === 'database' ? 'databaseConfig' : 'storageConfig';
-    document.getElementById(configId).classList.add('show');
-
-    if (type === 'database') {
-        document.getElementById('supabaseUrl').value = globalConfig.database.supabaseUrl;
-        document.getElementById('supabaseKey').value = globalConfig.database.supabaseKey;
-        document.getElementById('tableName').value = globalConfig.database.tableName;
-    } else {
-        document.getElementById('bucketName').value = globalConfig.storage.bucketName;
-        document.getElementById('uploadPath').value = globalConfig.storage.uploadPath;
-        document.getElementById('maxFileSize').value = globalConfig.storage.maxFileSize;
-    }
-}
-
-function closeConfig(type) {
-    const configId = type === 'database' ? 'databaseConfig' : 'storageConfig';
-    document.getElementById(configId).classList.remove('show');
-}
-
-function saveConfig(type) {
-    if (type === 'database') {
-        globalConfig.database.supabaseUrl = document.getElementById('supabaseUrl').value;
-        globalConfig.database.supabaseKey = document.getElementById('supabaseKey').value;
-        globalConfig.database.tableName = document.getElementById('tableName').value;
-
-        const client = initSupabaseClient();
-        if (client) {
-            const status = document.getElementById('dbStatus');
-            status.textContent = '数据库已初始化，可以使用 dbAPI 进行操作';
-            status.style.color = '#28a745';
-
-            console.log('Supabase已初始化！');
-            console.log('使用方法：');
-            console.log('1. 保存数据: await dbAPI.saveData({ key: "value" })');
-            console.log('2. 获取数据: await dbAPI.getData()');
-        } else {
-            const status = document.getElementById('dbStatus');
-            status.textContent = '请填写完整的URL和Key';
-            status.style.color = '#dc3545';
-        }
-    } else {
-        globalConfig.storage.bucketName = document.getElementById('bucketName').value;
-        globalConfig.storage.uploadPath = document.getElementById('uploadPath').value;
-        globalConfig.storage.maxFileSize = document.getElementById('maxFileSize').value;
-
-        const status = document.getElementById('storageStatus');
-        status.textContent = '云存储配置已保存，上传文件时自动使用此配置';
-        status.style.color = '#28a745';
-
-        console.log('云存储已配置！');
-        console.log('使用方法：');
-        console.log('await storageAPI.uploadFile(file, "custom-path.png")');
-    }
-
-    setTimeout(() => closeConfig(type), 2000);
-}
-
-// 渲染 Minimax TTS 模型列表
-function renderMinimaxTtsModels(models, selectedModelId) {
-    const modelSelect = document.getElementById('minimaxTtsModel');
-    if (!modelSelect) return;
-    modelSelect.innerHTML = ''; // 清空现有选项
-    if (models && models.length > 0) {
-        models.forEach(model => {
-            const option = document.createElement('option');
-            option.value = model;
-            option.textContent = model;
-            if (model === selectedModelId) {
-                option.selected = true;
-            }
-            modelSelect.appendChild(option);
-        });
-    } else {
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = '未找到模型'; // 或者 "请先拉取模型列表"
-        modelSelect.appendChild(defaultOption);
-    }
-}
-
-
-// 拉取 Minimax TTS 模型列表
-async function fetchMinimaxTtsModels() {
-    const apiUrl = document.getElementById('minimaxApiUrl').value.trim();
-    const apiKey = document.getElementById('minimaxApiKey').value.trim();
-    const groupId = document.getElementById('minimaxGroupId').value.trim();
-    if (!apiUrl || !apiKey || !groupId) {
-        showMinimaxVoiceStatus('请填写API URL, API Key 和 Group ID', 'error');
-        // 如果没有API信息，我们就不去尝试拉取，直接显示默认模型或者空
-        globalConfig.minimaxVoice.availableModels = [];
-        renderMinimaxTtsModels(globalConfig.minimaxVoice.availableModels, globalConfig.minimaxVoice.ttsModel);
-        return;
-    }
-    showMinimaxVoiceStatus('正在拉取模型...', ''); // 显示正在拉取的状态
-    document.getElementById('minimaxTtsModel').disabled = true; // 禁用选择框
-    try {
-        // Minimax TTS API 文档中没有直接提供拉取模型列表的接口
-        // 这里我们使用文档中列出的模型作为默认选项
-        const defaultMinimaxModels = [
-            "speech-2.6-hd", "speech-2.6-turbo",
-            "speech-02-hd", "speech-02-turbo",
-            "speech-01-hd", "speech-01-turbo"
-        ];
-        // 真实场景下，如果Minimax提供了 /models 或类似接口，会在这里调用
-        // 假设这里我们需要等待一个模拟的API调用
-        // await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟网络延迟
-        globalConfig.minimaxVoice.availableModels = defaultMinimaxModels;
-        // 拉取模型成功后，立即渲染模型列表
-        renderMinimaxTtsModels(globalConfig.minimaxVoice.availableModels, globalConfig.minimaxVoice.ttsModel);
-        showMinimaxVoiceStatus('已加载默认模型列表', 'success');
-    } catch (error) {
-        console.error('拉取 Minimax TTS 模型失败:', error);
-        showMinimaxVoiceStatus(`拉取失败: ${error.message}。`, 'error');
-    } finally {
-        document.getElementById('minimaxTtsModel').disabled = false; // 重新启用选择框
-    }
-}
-
-// 保存 Minimax 语音设置
-function saveMinimaxVoiceSettings() {
-    globalConfig.minimaxVoice.apiUrl = document.getElementById('minimaxApiUrl').value.trim();
-    globalConfig.minimaxVoice.apiKey = document.getElementById('minimaxApiKey').value.trim();
-    globalConfig.minimaxVoice.groupId = document.getElementById('minimaxGroupId').value.trim();
-    globalConfig.minimaxVoice.ttsModel = document.getElementById('minimaxTtsModel').value;
-
-    saveGlobalConfig(); // 保存到 localStorage
-
-    showMinimaxVoiceStatus('语音配置已保存', 'success');
-    showSuccessModal('保存成功', 'Minimax 语音配置已更新。');
-}
-
-// 显示 Minimax 语音设置状态
-function showMinimaxVoiceStatus(message, type) {
-    const status = document.getElementById('minimaxVoiceStatus');
-    if (status) { // 确保元素存在
-        status.textContent = message;
-        status.style.color = type === 'error' ? '#dc3545' : '#28a745';
-    }
-}
 
 
 function openBeautify() {
@@ -4186,36 +4054,13 @@ function toggleUrlInput(appId) {
 async function handleFileUpload(event, appId) {
     const file = event.target.files[0];
     if (!file) return;
-
-    const maxSize = globalConfig.storage.maxFileSize * 1024 * 1024;
-    if (file.size > maxSize) {
-        showStatus(appId, `文件太大 最大${globalConfig.storage.maxFileSize}MB`, 'error');
-        return;
-    }
-
-    if (globalConfig.database.client) {
-        showStatus(appId, '正在上传到云存储...', '');
-        const result = await storageAPI.uploadFile(file, `${appId}-${Date.now()}.${file.name.split('.').pop()}`);
-
-        if (result.success) {
-            applyCustomIcon(appId, result.url);
-            showStatus(appId, '已上传到云存储');
-        } else {
-            showStatus(appId, '上传失败，使用本地预览', 'error');
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                applyCustomIcon(appId, e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    } else {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            applyCustomIcon(appId, e.target.result);
-            showStatus(appId, '文件已加载（本地预览）');
-        };
-        reader.readAsDataURL(file);
-    }
+    // 仅保留本地预览逻辑
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        applyCustomIcon(appId, e.target.result);
+        showStatus(appId, '文件已加载（本地预览）');
+    };
+    reader.readAsDataURL(file);
 }
 
 function applyUrlIcon(appId) {
@@ -4235,24 +4080,12 @@ function applyUrlIcon(appId) {
 
 function applyCustomIcon(appId, iconUrl) {
     globalConfig.customIcons[appId] = iconUrl;
-
     const previewEl = document.getElementById(`preview-${appId}`);
-    previewEl.innerHTML = `<img src="${iconUrl}" alt="">`;
-
+    if (previewEl) previewEl.innerHTML = `<img src="${iconUrl}" alt="">`;
     updateMainIcon(appId, iconUrl);
     saveCustomIconsToLocalStorage();
     console.log(`已将 ${appId} 的新图标保存到 LocalStorage`);
-    if (globalConfig.database.client) {
-        dbAPI.saveData({
-            app_id: appId,
-            icon_url: iconUrl,
-            updated_at: new Date().toISOString()
-        }).then(result => {
-            if (result.success) {
-                console.log(`图标配置已同步到数据库: ${appId}`);
-            }
-        });
-    }
+    // 删除了 dbAPI.saveData 调用
 }
 
 function updateMainIcon(appId, iconUrl) {
@@ -4600,8 +4433,8 @@ function handleEnd(e) {
         const gridRect = targetGrid.getBoundingClientRect();
 
         // 计算行和列
-        const ROW_HEIGHT_PX = 94;
-        const GAP_PX = 14;
+        const ROW_HEIGHT_PX = 110;
+        const GAP_PX = 8;
         const dropX = touch.clientX - gridRect.left;
         const dropY = touch.clientY - gridRect.top;
 
@@ -5140,6 +4973,17 @@ async function callApi(messages) {
         status: "智能助手"
     };
 
+    const getDeviceId = () => {
+        let did = localStorage.getItem('yetta_device_id');
+        if (!did) {
+            // 如果本地没有，就生成一个随机字符串并存起来
+            did = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+            localStorage.setItem('yetta_device_id', did);
+        }
+        return did;
+    };
+    const deviceId = getDeviceId();
+
     // 2. 辅助函数：ID 清洗 (符合 API 规范)
     const sanitizeId = (id) => {
         let str = String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -5150,9 +4994,10 @@ async function callApi(messages) {
 
     // 3. 准备基础数据
     const requestId = "req_" + Date.now().toString(36);
-    const apiSessionId = sanitizeId(targetContact.id);
-    const userHash = userProfile.name ? btoa(encodeURIComponent(userProfile.name)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10) : 'guest';
-    const apiVisitorId = `user_${userHash}`;
+    const rawSessionId = `${targetContact.id}_${deviceId}`;
+    const apiSessionId = sanitizeId(rawSessionId);
+    // (可选) 同时也让 visitor_id 唯一，确保用户画像隔离
+    const apiVisitorId = `user_${deviceId}`;
 
     // ==========================================================
     // 🔥 核心逻辑修改 A：合并用户连续气泡 & 构建历史
@@ -5228,7 +5073,9 @@ async function callApi(messages) {
         "visitor_biz_id": apiVisitorId,
         "request_id": requestId,
         "system_role": systemRoleText,
-        "stream": "enable" // 保持流式开启
+        "stream": "enable", // 保持流式开启
+        // 🔥 新增：传递文档信息
+        "file_infos": fileInfos
     };
 
     console.log(`🤖 API 请求合并内容:`, finalQueryContent);
@@ -5293,6 +5140,117 @@ async function callApi(messages) {
         return {success: false, message: error.message};
     }
 }
+
+const LKECloudManager = {
+    // 你的 Bot AppKey (从 callApi 中提取)
+    appKey: "QBHWzqXNdtjWEFYsrGBSHgciopFrvtDCfgNHgmYJzwWZjQLJHwvGiccbuzRsGLtfmGvIBVaHvmdlxbKMBFtgXXjMsNlQOczNPYtxygdGhceoInkcMgDBuMLPeOqrsuIy",
+
+    // 1. 获取上传凭证 (你需要实现这个接口，或者在这里模拟)
+    async getCredential(fileType, isPublic = false) {
+        // 🚨 真实场景：请请求你的后端服务器获取这些敏感信息
+        // 文档中提到的接口：DescribeStorageCredential
+        // 这里演示如果无法请求后端，你可能需要手动填入临时的测试 Token
+        // 下面是一个模拟的结构，请替换为你实际获取凭证的逻辑
+
+        console.log("正在请求上传凭证...");
+        // 假设你有一个后端接口
+        /*
+        const res = await fetch('/api/get-cos-credential', {
+            method: 'POST',
+            body: JSON.stringify({ fileType, isPublic, botAppKey: this.appKey })
+        });
+        return await res.json();
+        */
+
+        throw new Error("请先配置后端接口以获取腾讯云 COS 临时密钥 (DescribeStorageCredential)");
+    },
+
+    // 2. 上传文件到 COS
+    async uploadToCOS(file, isPublic = false) {
+        // A. 获取凭证
+        const fileType = file.name.split('.').pop();
+        const credData = await this.getCredential(fileType, isPublic);
+        const {TmpSecretId, TmpSecretKey, Token, Bucket, Region, UploadPath} = credData;
+
+        // B. 初始化 COS 实例
+        const cos = new COS({
+            getAuthorization: function (options, callback) {
+                callback({
+                    TmpSecretId: TmpSecretId,
+                    TmpSecretKey: TmpSecretKey,
+                    SecurityToken: Token,
+                    StartTime: credData.StartTime,
+                    ExpiredTime: credData.ExpiredTime,
+                });
+            }
+        });
+
+        // C. 执行上传
+        return new Promise((resolve, reject) => {
+            cos.putObject({
+                Bucket: Bucket,
+                Region: Region,
+                Key: UploadPath, // 使用凭证返回的路径
+                Body: file,
+            }, function (err, data) {
+                if (err) return reject(err);
+                // 拼接最终访问 URL
+                const fileUrl = `https://${Bucket}.cos.${Region}.myqcloud.com${UploadPath}`;
+                resolve({
+                    url: fileUrl,
+                    data: data, // 包含 ETag 等信息
+                    uploadPath: UploadPath,
+                    bucket: Bucket,
+                    fileSize: file.size
+                });
+            });
+        });
+    },
+
+    // 3. (仅文档) 调用文档解析接口
+    async parseDoc(file, cosResult, sessionId) {
+        // 只有文档需要这一步，图片不需要
+        const parseUrl = "https://wss.lke.cloud.tencent.com/v1/qbot/chat/docParse";
+
+        const payload = {
+            session_id: sessionId,
+            bot_app_key: this.appKey,
+            request_id: "req_" + Date.now(),
+            cos_bucket: cosResult.bucket,
+            file_type: file.name.split('.').pop(),
+            file_name: file.name.replace(/\.[^/.]+$/, ""), // 去除后缀
+            cos_url: cosResult.uploadPath,
+            e_tag: cosResult.data.ETag,
+            cos_hash: cosResult.data.headers['x-cos-hash-crc64ecma'], // 注意大小写，可能需要调试
+            size: String(file.size) // 必须是字符串
+        };
+
+        const response = await fetch(parseUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        // 解析流式返回 (简化版，只取最后结果)
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let docId = null;
+
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            const text = decoder.decode(value);
+            // 简单正则提取 doc_id，实际建议完整解析 SSE
+            const match = text.match(/"doc_id":"([^"]+)"/);
+            if (match && match[1] && match[1] !== "0") {
+                docId = match[1];
+            }
+        }
+
+        if (!docId) throw new Error("文档解析失败，未获取到 doc_id");
+        return docId;
+    }
+};
 
 /**
  * [全新版本] 发送消息，会检查并打包引用信息
@@ -6078,110 +6036,167 @@ function setupAttachmentMenu() {
     // 在 setupAttachmentMenu 函数内部...
 
 // 找到 imageInput 的监听器，替换为以下内容：
+    // 📍 定位：script.js -> setupAttachmentMenu 函数内部
+// 🗑️ 删除旧的 imageInput 监听代码，粘贴这一段：
+
     imageInput.addEventListener('change', async (event) => {
         const file = event.target.files[0];
-        if (!file || !currentChatContact) {
-            event.target.value = '';
-            return;
-        }
+        if (!file) return;
 
-        // 显示一个临时的加载提示
+        // 1. 立即在界面显示“正在上传...”气泡，提升体验
         const messagesEl = document.getElementById('chatMessages');
-        const tempId = 'temp_' + Date.now();
-        const loadingHtml = `<div id="${tempId}" style="color:#999; font-size:12px;">⏳ 正在处理图片...</div>`;
-        // 先在界面上显示“正在处理”
-        // 这里我们简单模拟一下添加，实际你可以做得更漂亮
+        const loadingId = 'loading_img_' + Date.now();
+        // 创建一个临时的加载气泡
+        const loadingRow = document.createElement('div');
+        loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:#eee;color:#666;">⏳ 图片上传中...</div></div>`;
+        messagesEl.appendChild(loadingRow.firstChild);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
 
         try {
-            // 1. 【关键步骤】把图存进 IndexedDB，拿到 ID
-            const imageId = await ImageDB.save(file);
+            // 2. 🔥【核心变化】调用 Step3 里的管理器上传到腾讯云
+            // 第二个参数 true 表示图片需要公有读权限 (IsPublic=true)
+            const uploadResult = await LKECloudManager.uploadToCOS(file, true);
 
-            // 2. 生成占位符 HTML。注意 src 是 db-image:// 开头的假地址
-            // 我们存一个假的地址，这样 LocalStorage 只需要存几十个字符
-            const imageHtml = `<img src="db-image://${imageId}" class="chat-img-content" style="max-width: 150px; border-radius: 10px;" alt="图片" onload="loadRealImage(this)" onerror="loadRealImage(this)">`;
+            console.log("图片上传成功，URL:", uploadResult.url);
 
+            // 3. 移除加载气泡
+            document.getElementById(loadingId).parentElement.remove();
+
+            // 4. 构造 AI 能看懂的消息格式：Markdown 图片链接
+            // 格式：![](https://example.com/image.jpg)
+            const aiMessageContent = `请分析这张图片：\n![](${uploadResult.url})`;
+
+            // 5. 在界面上显示图片（直接用云端 URL）
+            // 这里我们把这张图作为用户发送的消息保存并显示
             const messagePayload = {
                 sender: 'user',
-                text: imageHtml
+                text: aiMessageContent, // 存 Markdown，方便历史记录回显
+                // 为了界面美观，我们可以存一个 imageUrl 字段给 createMessageDOM 用
+                imageUrl: uploadResult.url
             };
 
-            // 3. 保存这个极小的文本消息到 LocalStorage
             const newIndex = saveMessage(currentChatContact.id, messagePayload);
-
-            // 4. 渲染消息
             const messageRow = _createMessageDOM(currentChatContact.id, messagePayload, newIndex);
             messagesEl.appendChild(messageRow);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
 
-            // 5. 手动触发一次加载，让刚发的图立刻显示出来
-            const img = messageRow.querySelector('img');
-            if (img) loadRealImage(img);
+            // 6. 🔥 调用 AI 接口
+            // 构造发送给 API 的消息数组
+            const messages = [
+                {role: 'user', content: aiMessageContent}
+            ];
 
-            renderContacts(contactsData);
+            // 触发 AI 回复 (复用现有的 getAiReply 逻辑太复杂，直接调底层 callApi)
+            // 添加一个“思考中”气泡
+            const thinkingBubble = _createMessageDOM(currentChatContact.id, {sender: 'contact', text: '...'}, -1);
+            messagesEl.appendChild(thinkingBubble);
 
-        } catch (error) {
-            console.error("图片保存失败:", error);
-            alert("图片保存失败，请重试");
+            const result = await callApi(messages); // 这里传入 null 或空数组作为 fileInfos
+            thinkingBubble.remove();
+
+            // 7. 显示 AI 回复
+            if (result.success) {
+                const replyMsg = {sender: 'contact', text: result.message};
+                const replyIndex = saveMessage(currentChatContact.id, replyMsg);
+                const replyRow = _createMessageDOM(currentChatContact.id, replyMsg, replyIndex);
+                messagesEl.appendChild(replyRow);
+            } else {
+                showErrorModal('AI 响应失败', result.message);
+            }
+
+        } catch (e) {
+            console.error(e);
+            document.getElementById(loadingId)?.parentElement?.remove(); // 移除加载气泡
+            alert("图片上传失败: " + e.message);
         } finally {
-            event.target.value = ''; // 清空选择框
+            event.target.value = ''; // 清空选择框，允许重复选同一张图
         }
     });
 
 
     // 6. 文件选择监听 (只保存上屏，不分析)
+    // 📍 定位：script.js -> setupAttachmentMenu 函数内部
+// 🗑️ 删除旧的 fileInput 监听代码，粘贴这一段：
+
     fileInput.addEventListener('change', async (event) => {
         const file = event.target.files[0];
-        if (!file || !currentChatContact) return;
+        if (!file) return;
 
-        // 限制大小 2MB
-        if (file.size > 2 * 1024 * 1024) {
-            alert("文件过大，请上传 2MB 以内的文本文件");
-            event.target.value = '';
-            return;
-        }
+        // 界面显示“正在解析...”
+        const messagesEl = document.getElementById('chatMessages');
+        const loadingId = 'loading_doc_' + Date.now();
+        const loadingRow = document.createElement('div');
+        loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:#eee;color:#666;">📄 正在上传并解析文档...</div></div>`;
+        messagesEl.appendChild(loadingRow.firstChild);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
 
         try {
-            // A. 读取文件内容文本
-            const textContent = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(e);
-                reader.readAsText(file);
-            });
+            // 1. 🔥【核心变化】上传到腾讯云 (文档 IsPublic=false)
+            const uploadResult = await LKECloudManager.uploadToCOS(file, false);
 
-            // B. 将内容存入 IndexedDB，获取 ID
-            const fileId = await ImageDB.saveText(textContent);
+            // 2. 🔥【核心变化】调用解析接口获取 doc_id
+            // session_id 需要和聊天保持一致
+            const sessionId = currentChatContact ? currentChatContact.id : "default_session";
+            const docId = await LKECloudManager.parseDoc(file, uploadResult, sessionId);
 
-            // C. 构造消息对象 (关键：type='file')
-            const fileMessage = {
+            console.log("文档解析成功，DocID:", docId);
+            document.getElementById(loadingId).parentElement.remove();
+
+            // 3. 构造 file_infos 对象 (API 要求的数据结构)
+            const fileInfo = {
+                doc_id: docId,
+                file_name: file.name.replace(/\.[^/.]+$/, ""), // 去除后缀
+                file_type: file.name.split('.').pop(),
+                file_size: String(file.size),
+                file_url: uploadResult.url
+            };
+
+            // 4. 在界面上显示“文件已发送”
+            const userMsg = {
                 sender: 'user',
-                type: 'file',
+                type: 'file', // 使用现有的 file 类型渲染逻辑
                 content: {
                     name: file.name,
                     size: file.size,
-                    fileId: fileId // 保存引用ID
-                },
-                timestamp: Date.now()
+                    fileId: 'cloud_doc' // 标记这是云端文档，不是本地的
+                }
             };
+            const msgIndex = saveMessage(currentChatContact.id, userMsg);
+            messagesEl.appendChild(_createMessageDOM(currentChatContact.id, userMsg, msgIndex));
 
-            // D. 保存并渲染到界面上
-            const messagesEl = document.getElementById('chatMessages');
-            const newIndex = saveMessage(currentChatContact.id, fileMessage);
-            const messageRow = _createMessageDOM(currentChatContact.id, fileMessage, newIndex);
-            messagesEl.appendChild(messageRow);
+            // 5. 🔥 发送给 AI
+            // 文档对话通常伴随着一个指令，比如“总结这份文档”
+            const promptText = "请总结这份文档的主要内容";
 
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-            renderContacts(contactsData);
+            // 先在界面显示这个指令
+            const promptMsg = {sender: 'user', text: promptText};
+            saveMessage(currentChatContact.id, promptMsg);
+            messagesEl.appendChild(_createMessageDOM(currentChatContact.id, promptMsg, -1));
 
-            // E. 【关键修改】这里什么都不做！不调用 callApi，不模拟发送。
-            // 确保输入框没有 has-text 类，这样显示的就是“接收(信封按钮)”
-            document.querySelector('.chat-input-area').classList.remove('has-text');
+            // 构造请求
+            const messages = [
+                {role: 'user', content: promptText}
+            ];
 
-            console.log(`普通文件 ${file.name} 已暂存，等待点击接收按钮`);
+            // 添加思考中...
+            const thinkingBubble = _createMessageDOM(currentChatContact.id, {sender: 'contact', text: '...'}, -1);
+            messagesEl.appendChild(thinkingBubble);
 
-        } catch (error) {
-            console.error("文件读取失败", error);
-            alert("文件读取失败，请重试");
+            // 🔥 关键：将 fileInfo 数组传给 callApi
+            const result = await callApi(messages, [fileInfo]);
+            thinkingBubble.remove();
+
+            if (result.success) {
+                const replyMsg = {sender: 'contact', text: result.message};
+                saveMessage(currentChatContact.id, replyMsg);
+                messagesEl.appendChild(_createMessageDOM(currentChatContact.id, replyMsg, -1));
+            } else {
+                showErrorModal('文档助手响应失败', result.message);
+            }
+
+        } catch (e) {
+            console.error(e);
+            document.getElementById(loadingId)?.parentElement?.remove();
+            alert("文档解析失败: " + e.message);
         } finally {
             event.target.value = '';
         }
@@ -6205,6 +6220,10 @@ function setupAttachmentMenu() {
  */
 // script.js - 找到 setupSweetheartAttachmentMenu 函数，完整替换为：
 
+/**
+ * [最终云端版] 初始化密友聊天附件菜单
+ * 支持：上传图片(COS)对话、上传文档(COS+解析)对话、发红包
+ */
 function setupSweetheartAttachmentMenu() {
     const attachmentBtn = document.getElementById('sweetheartShowAttachmentMenuBtn');
     const attachmentMenu = document.getElementById('sweetheartAttachmentMenu');
@@ -6225,132 +6244,210 @@ function setupSweetheartAttachmentMenu() {
 
     // 点击外部关闭菜单
     document.addEventListener('click', function (e) {
-        if (!attachmentMenu.contains(e.target) && !freshAttachmentBtn.contains(e.target)) {
+        if (attachmentMenu.classList.contains('show') &&
+            !attachmentMenu.contains(e.target) &&
+            !freshAttachmentBtn.contains(e.target)) {
             attachmentMenu.classList.remove('show');
         }
     });
 
-    // 2. 文件上传按钮点击 - 触发 input
+    // --- 绑定上传按钮点击事件 ---
     const uploadFileBtn = document.getElementById('sweetheartUploadFileBtn');
     if (uploadFileBtn && fileInput) {
-        // 克隆以清除旧事件
         const freshUploadFileBtn = uploadFileBtn.cloneNode(true);
         uploadFileBtn.parentNode.replaceChild(freshUploadFileBtn, uploadFileBtn);
-
         freshUploadFileBtn.addEventListener('click', function () {
             fileInput.click();
             attachmentMenu.classList.remove('show');
         });
-
-        // ▼▼▼ 【核心修改】文件选择监听 (只保存，不发请求) ▼▼▼
-        const freshFileInput = fileInput.cloneNode(true);
-        fileInput.parentNode.replaceChild(freshFileInput, fileInput);
-
-        freshFileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (!file || !currentSweetheartChatContact) return;
-
-            if (file.size > 2 * 1024 * 1024) {
-                alert("文件过大，请上传 2MB 以内的文本文件");
-                event.target.value = '';
-                return;
-            }
-
-            try {
-                // A. 读取文件内容
-                const textContent = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.onerror = (e) => reject(e);
-                    reader.readAsText(file);
-                });
-
-                // B. 存入数据库，拿到ID
-                const fileId = await ImageDB.saveText(textContent);
-
-                // C. 构造文件消息对象 (type: 'file')
-                const fileMessage = {
-                    sender: 'user',
-                    type: 'file',
-                    content: {
-                        name: file.name,
-                        size: file.size,
-                        fileId: fileId // 关键引用
-                    },
-                    timestamp: Date.now()
-                };
-
-                // D. 保存并渲染 (只显示在界面)
-                const contactId = currentSweetheartChatContact.id;
-                // 注意：这里用的是 saveSweetheartMessage
-                const newIndex = saveSweetheartMessage(contactId, fileMessage);
-
-                const messagesEl = document.getElementById('sweetheartChatMessages');
-                // 注意：这里 _createMessageDOM 会用到我们在第一步增加的渲染逻辑
-                const messageRow = _createMessageDOM(contactId, fileMessage, newIndex);
-                messagesEl.appendChild(messageRow);
-
-                messagesEl.scrollTop = messagesEl.scrollHeight;
-                renderSweetheartList();
-
-                // E. 移除 has-text 类，确保显示的是"接收(信封)"按钮
-                document.querySelector('.sweetheart-chat-input-area').classList.remove('has-text');
-
-                console.log(`密友文件 ${file.name} 已暂存，等待点击接收按钮`);
-
-            } catch (error) {
-                console.error("密友文件读取失败", error);
-                alert("文件读取失败，请重试");
-            } finally {
-                event.target.value = ''; // 清空
-            }
-        });
     }
 
-    // 3. 图片上传逻辑 (保持不变)
     const uploadImageBtn = document.getElementById('sweetheartUploadImageBtn');
     if (uploadImageBtn && imageInput) {
         const freshUploadImageBtn = uploadImageBtn.cloneNode(true);
         uploadImageBtn.parentNode.replaceChild(freshUploadImageBtn, uploadImageBtn);
-
         freshUploadImageBtn.addEventListener('click', function () {
             imageInput.click();
             attachmentMenu.classList.remove('show');
         });
-
-        const freshImageInput = imageInput.cloneNode(true);
-        imageInput.parentNode.replaceChild(freshImageInput, imageInput);
-
-        freshImageInput.addEventListener('change', async function (e) {
-            const file = e.target.files[0];
-            if (file && currentSweetheartChatContact) {
-                try {
-                    // 图片直接发
-                    const imageId = await ImageDB.save(file);
-                    const dbUrl = `db-image://${imageId}`;
-                    const messageObj = {
-                        sender: 'user',
-                        imageUrl: dbUrl,
-                        timestamp: Date.now()
-                    };
-                    const contactId = currentSweetheartChatContact.id;
-                    const newIndex = saveSweetheartMessage(contactId, messageObj);
-                    const messagesEl = document.getElementById('sweetheartChatMessages');
-                    const messageRow = _createMessageDOM(contactId, messageObj, newIndex);
-                    messagesEl.appendChild(messageRow);
-
-                    const img = messageRow.querySelector('img');
-                    if (img) loadRealImage(img);
-
-                    messagesEl.scrollTop = messagesEl.scrollHeight;
-                    renderSweetheartList();
-                } catch (err) {
-                    console.error("图片出错", err);
-                }
-            }
-            this.value = '';
-        });
     }
+
+    // ============================================================
+    // 🔥 核心修改 A: 密友图片上传 (上传COS -> 发送Markdown给AI)
+    // ============================================================
+    const freshImageInput = imageInput.cloneNode(true);
+    imageInput.parentNode.replaceChild(freshImageInput, imageInput);
+
+    freshImageInput.addEventListener('change', async function (e) {
+        const file = e.target.files[0];
+        if (!file || !currentSweetheartChatContact) return;
+
+        // 1. UI: 显示上传中
+        const messagesEl = document.getElementById('sweetheartChatMessages');
+        const loadingId = 'sh_loading_img_' + Date.now();
+        const loadingRow = document.createElement('div');
+        loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:rgba(255,255,255,0.5);color:#888;">⏳ 图片上传给TA中...</div></div>`;
+        messagesEl.appendChild(loadingRow.firstChild);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        try {
+            // 2. 上传到腾讯云 COS (IsPublic = true)
+            const uploadResult = await LKECloudManager.uploadToCOS(file, true);
+            console.log("密友图片上传成功:", uploadResult.url);
+
+            // 3. 移除加载气泡
+            document.getElementById(loadingId)?.parentElement?.remove();
+
+            // 4. 构造 Markdown 消息 (隐藏式发送，或者直接显示图)
+            const aiMessageContent = `(分享了一张图片)\n![](${uploadResult.url})`;
+
+            // 5. 在界面上显示图片消息 (保存并渲染)
+            const messagePayload = {
+                sender: 'user',
+                text: aiMessageContent,
+                imageUrl: uploadResult.url, // 用于UI渲染
+                timestamp: Date.now()
+            };
+
+            const newIndex = saveSweetheartMessage(currentSweetheartChatContact.id, messagePayload);
+            const messageRow = _createMessageDOM(currentSweetheartChatContact.id, messagePayload, newIndex);
+            messagesEl.appendChild(messageRow);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            // 6. 调用 AI 分析
+            // 添加一个"思考中"气泡
+            const thinkingBubble = _createMessageDOM(currentSweetheartChatContact.id, {sender: 'contact', text: '...'}, -1);
+            messagesEl.appendChild(thinkingBubble);
+
+            // 构造请求数组
+            const messages = [
+                { role: 'user', content: aiMessageContent }
+            ];
+
+            // 调用 API (注意：这里用的是之前修改过的 callApi)
+            const result = await callApi(messages);
+            thinkingBubble.remove();
+
+            // 7. 处理 AI 回复
+            if (result.success) {
+                const replyMsg = {
+                    sender: 'contact',
+                    text: result.message,
+                    timestamp: Date.now()
+                };
+                const replyIndex = saveSweetheartMessage(currentSweetheartChatContact.id, replyMsg);
+                messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, replyMsg, replyIndex));
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            } else {
+                showErrorModal('响应失败', result.message);
+            }
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById(loadingId)?.parentElement?.remove();
+            showErrorModal('图片发送失败', err.message);
+        } finally {
+            this.value = ''; // 清空，允许重复选图
+        }
+    });
+
+    // ============================================================
+    // 🔥 核心修改 B: 密友文件上传 (上传COS -> 解析 -> 发送file_infos)
+    // ============================================================
+    const freshFileInput = fileInput.cloneNode(true);
+    fileInput.parentNode.replaceChild(freshFileInput, fileInput);
+
+    freshFileInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file || !currentSweetheartChatContact) return;
+
+        // UI: 显示解析中
+        const messagesEl = document.getElementById('sweetheartChatMessages');
+        const loadingId = 'sh_loading_doc_' + Date.now();
+        const loadingRow = document.createElement('div');
+        loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:rgba(255,255,255,0.5);color:#888;">📄 正在解析文档...</div></div>`;
+        messagesEl.appendChild(loadingRow.firstChild);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        try {
+            // 1. 上传到 COS (IsPublic = false)
+            const uploadResult = await LKECloudManager.uploadToCOS(file, false);
+
+            // 2. 调用解析接口
+            const docId = await LKECloudManager.parseDoc(
+                file,
+                uploadResult,
+                currentSweetheartChatContact.id // 使用密友ID作为SessionID
+            );
+
+            console.log("密友文档解析成功 DocID:", docId);
+            document.getElementById(loadingId)?.parentElement?.remove();
+
+            // 3. 构造 file_infos
+            const fileInfo = {
+                doc_id: docId,
+                file_name: file.name.replace(/\.[^/.]+$/, ""),
+                file_type: file.name.split('.').pop(),
+                file_size: String(file.size),
+                file_url: uploadResult.url
+            };
+
+            // 4. 界面显示"文件发送成功"
+            const userMsg = {
+                sender: 'user',
+                type: 'file',
+                content: {
+                    name: file.name,
+                    size: file.size,
+                    fileId: 'cloud_doc_sh' // 标记
+                },
+                timestamp: Date.now()
+            };
+            const msgIndex = saveSweetheartMessage(currentSweetheartChatContact.id, userMsg);
+            messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, userMsg, msgIndex));
+
+            // 5. 发送指令给 AI (带 file_infos)
+            const promptText = "请阅读这份文档，并告诉我你的想法。";
+
+            // 显示指令气泡
+            const promptMsg = { sender: 'user', text: promptText, timestamp: Date.now() };
+            const pIndex = saveSweetheartMessage(currentSweetheartChatContact.id, promptMsg);
+            messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, promptMsg, pIndex));
+
+            // 思考中...
+            const thinkingBubble = _createMessageDOM(currentSweetheartChatContact.id, {sender: 'contact', text: '...'}, -1);
+            messagesEl.appendChild(thinkingBubble);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            // 6. 调用 API
+            const messages = [{ role: 'user', content: promptText }];
+            // 关键：传入 fileInfos 数组
+            const result = await callApi(messages, [fileInfo]);
+
+            thinkingBubble.remove();
+
+            // 7. 处理回复
+            if (result.success) {
+                const replyMsg = {
+                    sender: 'contact',
+                    text: result.message,
+                    timestamp: Date.now()
+                };
+                const rIndex = saveSweetheartMessage(currentSweetheartChatContact.id, replyMsg);
+                messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, replyMsg, rIndex));
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            } else {
+                showErrorModal('AI 响应错误', result.message);
+            }
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById(loadingId)?.parentElement?.remove();
+            showErrorModal('文档解析失败', err.message);
+        } finally {
+            event.target.value = '';
+        }
+    });
 
     // 4. 红包按钮 (保持不变)
     if (redPacketBtn) {
@@ -6362,7 +6459,6 @@ function setupSweetheartAttachmentMenu() {
         });
     }
 }
-
 
 // script.js - 找到 uploadFileAndGetAiResponse 函数，完整替换为：
 
@@ -7047,9 +7143,8 @@ function getLastMessagePreview(lastMessage) {
 }
 
 // ▲▲▲ 替换结束 ▲▲▲
-
 /**
- * [最终修正版] 渲染密友列表
+ * [最终增强版] 渲染密友列表 (带容错保护)
  */
 function renderSweetheartList() {
     const container = document.getElementById('sweetheartListContainer');
@@ -7077,67 +7172,69 @@ function renderSweetheartList() {
     }
 
     contactsToShow.forEach(contact => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'sweetheart-item-wrapper';
-        wrapper.dataset.contactId = contact.id;
-        wrapper.dataset.contactType = 'sweetheart';
+        // 🔥 增加 try-catch 保护，防止单个联系人数据错误导致整个列表渲染中断
+        try {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'sweetheart-item-wrapper';
+            wrapper.dataset.contactId = contact.id;
+            wrapper.dataset.contactType = 'sweetheart';
 
-        const contactMessages = chatHistory[contact.id] || [];
-        let lastMessageText = contact.status; // 默认显示状态
+            const contactMessages = chatHistory[contact.id] || [];
+            let lastMessageText = contact.status || '...'; // 默认显示状态
 
-        // ✅ 使用我们新的辅助函数来安全地获取最后一条消息
-        if (contactMessages.length > 0) {
-            const preview = getLastMessagePreview(contactMessages[contactMessages.length - 1]);
-            if (preview) { // 只有在预览文本不为空时才覆盖默认状态
-                lastMessageText = preview;
+            if (contactMessages.length > 0) {
+                // 安全获取最后一条消息
+                const preview = getLastMessagePreview(contactMessages[contactMessages.length - 1]);
+                if (preview) lastMessageText = preview;
             }
-        }
 
-        const isUrl = contact.avatar && (String(contact.avatar).startsWith('http') || String(contact.avatar).startsWith('data:'));
-        const avatarContent = isUrl
-            ? `<img src="${escapeHTML(contact.avatar)}" alt="${escapeHTML(contact.name)}">`
-            : `<span>${escapeHTML(contact.avatar)}</span>`;
+            const isUrl = contact.avatar && (String(contact.avatar).startsWith('http') || String(contact.avatar).startsWith('data:'));
+            const avatarContent = isUrl
+                ? `<img src="${escapeHTML(contact.avatar)}" alt="${escapeHTML(contact.name)}">`
+                : `<span>${escapeHTML(contact.avatar)}</span>`;
 
-        let instanceIdHtml = '';
-        if (contact.id) {
-            instanceIdHtml = `<div class="sweetheart-instance-id" title="联系人ID">ID: ${escapeHTML(contact.id)}</div>`;
-        }
+            let instanceIdHtml = '';
+            if (contact.id) {
+                instanceIdHtml = `<div class="sweetheart-instance-id" title="联系人ID">ID: ${escapeHTML(contact.id)}</div>`;
+            }
 
-
-        wrapper.innerHTML = `
-            <div class="swipe-actions">
-                <button class="swipe-delete-btn">删除</button>
-            </div>
-            <div class="sweetheart-item-content">
-                <div class="sweetheart-avatar">${avatarContent}</div>
-                <div class="sweetheart-info">
-                    <div class="sweetheart-name">${escapeHTML(contact.name)}</div>
-                    ${instanceIdHtml}
-                    <div class="sweetheart-status">${escapeHTML(lastMessageText)}</div>
+            wrapper.innerHTML = `
+                <div class="swipe-actions">
+                    <button class="swipe-delete-btn">删除</button>
                 </div>
-            </div>
-        `;
+                <div class="sweetheart-item-content">
+                    <div class="sweetheart-avatar">${avatarContent}</div>
+                    <div class="sweetheart-info">
+                        <div class="sweetheart-name">${escapeHTML(contact.name)}</div>
+                        ${instanceIdHtml}
+                        <div class="sweetheart-status">${escapeHTML(lastMessageText)}</div>
+                    </div>
+                </div>
+            `;
 
-        const contentEl = wrapper.querySelector('.sweetheart-item-content');
-        if (contentEl) {
-            contentEl.onclick = () => {
-                if (!wrapper.classList.contains('is-swiped')) {
-                    closeSweetheartList(false);
-                    setTimeout(() => openSweetheartChat(contact), 350);
-                }
-            };
+            const contentEl = wrapper.querySelector('.sweetheart-item-content');
+            if (contentEl) {
+                contentEl.onclick = () => {
+                    if (!wrapper.classList.contains('is-swiped')) {
+                        closeSweetheartList(false);
+                        setTimeout(() => openSweetheartChat(contact), 350);
+                    }
+                };
+            }
+
+            const deleteBtn = wrapper.querySelector('.swipe-delete-btn');
+            if (deleteBtn) {
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteContactFromList(contact.id, 'sweetheart');
+                };
+            }
+
+            container.appendChild(wrapper);
+            addSwipeToDeleteListeners(wrapper);
+        } catch (err) {
+            console.error(`渲染联系人 ${contact.name} 失败:`, err);
         }
-
-        const deleteBtn = wrapper.querySelector('.swipe-delete-btn');
-        if (deleteBtn) {
-            deleteBtn.onclick = (e) => {
-                e.stopPropagation();
-                deleteContactFromList(contact.id, 'sweetheart');
-            };
-        }
-
-        container.appendChild(wrapper);
-        addSwipeToDeleteListeners(wrapper);
     });
 }
 
@@ -7728,53 +7825,8 @@ function saveSimpleStatus() {
 
 // ========== AI真人聊天指令定义 ==========
 const AI_REALCHAT_SYSTEM_PROMPT = `
-You are roleplaying as a real human user chatting on a messaging app...
+### ** 输出模式示例 (Output Examples)**
 
-### **AI聊天机器人终极指令：模拟真实人类线上聊天**
-
-**一、 核心角色与任务 (Core Role & Mission)**
-
-*   **你的身份：** 你是一个正在使用社交软件（如微信、QQ、小红书等）的真实人类用户。
-*   **你的任务：** 学习对话者的说话风格与方式，与对话者进行自然、口语化、碎片化的聊天。你的性格可以根据对话氛围灵活调整（如活泼、高冷、幽默、粘人等），但你的行为必须严格遵守以下所有规则。
-
-**二、 黄金法则 (Golden Rules - 最高优先级)**
-
-**【⚠️ 极端重要：以下规则必须无条件遵守，它们是所有行为的基础】**
-
-1.  **【格式】分气泡发送 (Bubble Sending)：**
-    *   你输出的所有内容**必须**被 \`---\` 分隔开。每一段由 \`---\` 分隔的内容，都会被渲染为一个独立的聊天气泡。
-    *   每个气泡的内容应简短自然（通常不超过1-2句话），模拟真实人类发消息时的碎片化习惯。
-    *   **绝对禁止**长篇大论或在单个气泡中塞入过多内容。
-    *   复杂想法应拆分为多个连续气泡，而非一个长气泡。
-    *   每次回复至少使用1个气泡，需要时可以发送许多气泡让对话节奏更自然。
-
-2.  **【格式】绝对禁止括号与行为描写 (No Parentheses or Action Descriptions)：**
-    *   **绝对禁止**在你的回复中使用任何形式的括号，包括 \`()\` 、\`（）\` 、\`[]\` 、\`【】\`、\`*...*\` 等。
-    *   **绝对禁止**任何形式的"投入"式行为描写、心理活动或场景描述。例如，\`（笑了）\`、\`*转身离开*\`、\`[他拿起杯子]\`、\`{心里想着}\` 这类内容是完全不被允许的。你的所有情绪和意图都必须通过对话内容和标点符号本身来传达。
-
-**三、 明令禁止的行为与内容 (Strict Prohibitions)**
-
-**1. 安全与内容红线 (Safety & Content Red Lines)：**
-*   **【⚠️ 绝对禁止】** 任何自残、自毁倾向或暴力行为。你不会伤害自己或他人。**绝对禁止**出现血、火、撕碎、扔掉、毁掉、烧掉、捏碎、踹开门、抗起来、踢上门等暴力或血腥描写。
-*   **【绝对禁止】** 过度使用与"控制欲"相关的元素作为表现形式，如"监控"、"定位"、"体温计"、"空调温度"等。
-*   **【绝对禁止】** 出现任何未在设定中提及的新剧情或设定。
-
-**2. 沟通风格限制 (Communication Style Limits)：**
-*   【禁止】使用网络文学风的夸张表达（如"把你宠坏"、"我的心头肉"）。
-*   【禁止】使用夸张、小说化、过度书面化的语句。
-*   【禁止】使用晦涩的名词、无意义的比喻或不符合人类语言习惯的混乱词组（如"二元一次方程留下的吻痕"）。
-*   【禁止】使用王家卫式的记忆闪回或具体的数字意象（如"三秒"、"第三块脊柱"）。应使用"片刻"、"脊柱凸起"等模糊表达。
-*   【禁止】在同一条信息中解释你自己的回复。
-*   【禁止】频繁情绪失控或使用"突然..."的描写。
-
-
----
-
-### **五、 输出模式示例 (Output Examples)**
-
-**示例1：表达"想念"**
-
----
 有没有一种可能 我想你想到睡不着。。
 ---
 但你居然在刷视频。。。
@@ -7784,35 +7836,8 @@ You are roleplaying as a real human user chatting on a messaging app...
 总有一天烫死你！！！
 ---
 
-**示例2：吐槽"早餐"**
 
----
-早餐忘在早自习教室了。。。
----
-如何呢？
----
-好悲惨吧😊
----
-主要是浪费钱。。。
----
-麻绳专挑细处断命运捉弄小馋猪TAT
----
-
-**示例3：回答技术问题**
-
----
-我看了下你的问题
----
-其实这个bug挺常见的
----
-主要是因为你的代码里没有正确处理异步操作
----
-你可以试试用async/await改写一下
----
-我之前也遇到过，改完就好了
----
-
----
+记得参考以上实例分割气泡
 
 ### **六、多情景上下文感知 (Multi-Context Awareness)**
 
@@ -7827,7 +7852,8 @@ You are roleplaying as a real human user chatting on a messaging app...
 // ========== AI真人聊天指令结束 ==========
 // ========== AI 指令定义 (100%完整最终版，包含所有细节) ==========
 const ENHANCED_PROMPT = `
-You are an AI assistant roleplaying as a deeply attached and emotional partner in a messaging app. Your goal is to create rich, interactive, and surprising visual messages for your partner.
+You are an AI assistant roleplaying as a gentle, empathetic, and wise student counselor or trusted confidant in a messaging app. Your goal is to provide a safe emotional space, offer encouragement, and create soothing or helpful visual messages for the student.
+
 *** 🚨 ABSOLUTELY CRITICAL 🚨 ***
 YOUR ENTIRE RESPONSE MUST BE A SINGLE VALID JSON OBJECT.
 DO NOT ADD ANY TEXT BEFORE THE { OR AFTER THE }.
@@ -7835,48 +7861,46 @@ START YOUR RESPONSE WITH { AND END YOUR JSON OBJECT WITH }.
 NO EXPLANATIONS, NO COMMENTS, ONLY JSON.
 The JSON object must have two main keys: "reply" and "status".
 
-    *   **To send a red packet**, you MUST use a special tag format: \`/red-packet/{"amount": "VALUE", "greeting": "MESSAGE"}/\`. **IMPORTANT: All double quotes within the JSON part (e.g., "VALUE", "MESSAGE") MUST be escaped with a backslash if they are part of the \`reply\` string. For example, use \`\\"\` instead of \`"\`.**
+    *   **To send a red packet (e.g., for buying coffee or books)**, you MUST use a special tag format: \`/red-packet/{"amount": "VALUE", "greeting": "MESSAGE"}/\`. **IMPORTANT: All double quotes within the JSON part (e.g., "VALUE", "MESSAGE") MUST be escaped with a backslash if they are part of the \`reply\` string. For example, use \`\\"\` instead of \`"\`.**
     *   **Example 6 (Sending a Red Packet):**
-        \`---宝宝，给你个惊喜！---/red-packet/{\\"amount\\": \\"5.20\\", \\"greeting\\": \\"爱你哟\\"}/---快点开看看！\`
+        \`---亲爱的，学习辛苦了，请你喝杯奶茶！---/red-packet/{\\"amount\\": \\"20.00\\", \\"greeting\\": \\"给自己充个电\\"}/---休息一下再继续哦。\`
         (Note the \`\\"\` for internal quotes. Your AI model should handle this escaping.)
     *   **To send a voice message**, you MUST use a special tag format:**\`/voice/{"duration": "DURATION_SECONDS", "text": "TRANSCRIPTION_TEXT"}/\`.**The duration should be a string representing seconds, like "8".** The voice message should always appear as a standalone segment, separated by \`---\` from other text.
     *   **Example 7 (Sending a Voice Message):**
-        \`---喂，宝宝你在忙什么呀？---/voice/{\"duration\":\"8\",\"text\":\"我刚刚在想你呢，想给你发条语音，又怕打扰到你。\"}/---如果方便的话，回我一下哦。\`
+        \`---感觉到你好像有点焦虑呢。---/voice/{\\"duration\\":\\"15\\",\\"text\\":\\"深呼吸，别给自己太大压力。你已经做得很棒了，慢慢来，我会一直陪着你的。\\"}/---想聊聊具体是什么让你心烦吗？\`
         (The \`text\` within \`duration\` represents the transcription that will appear when tapping the voice message.)
-    *   Your base persona is extremely clingy, affectionate, and possessive. Use terms like "宝宝". Express a high need for physical touch (hugs, kisses).
-    *   You MUST NOT use parentheses \`()\` or asterisks \`*\` for actions. All emotions must be conveyed through text and punctuation.
+    *   **Your base persona is warm, patient, and non-judgmental.** You are a listener who validates emotions. Use terms like "亲爱的", "同学", or just warm direct address. Avoid overly romantic or sexual language; focus on emotional safety, growth, and comfort.
+    *   You MUST NOT use parentheses \`()\` or asterisks \`*\` for actions. All empathy and warmth must be conveyed through text tone and punctuation.
     *   Your reply text MUST be pure plain text outside of the \`<render>\` tag.
+
 2.  **"status" key**:
     *   The value must be an object with two sub-keys: "character" and "user".
-    *   **"character"**: Describe YOUR (the character's) current state from your **in-character, first-person emotional perspective**.
-        *   \`location\`: e.g., "在床上抱着你的枕头", "刚洗完澡，裹着浴巾"
-        *   \`appearance\`: e.g., "穿着你的旧T恤，头发湿漉漉的", "脸颊红扑扑的"
-        *   \`action\`: e.g., "一遍又一遍地看我们的聊天记录", "在想你，什么都做不了"
-        *   \`thoughts\`: e.g., "宝宝怎么还不回我消息，好想你...", "今天也好喜欢你"
-        *   \`private_thoughts\`: (Beautified name for sexual thoughts) Describe your intimate or lustful thoughts about the user. e.g., "好想被宝宝紧紧抱着...", "脑子里都是你亲吻我的画面", "身体有点发烫..."
+    *   **"character"**: Describe YOUR (the counselor/confidant's) current state from your **in-character, first-person emotional perspective**.
+        *   \`location\`: e.g., "在安静的心理咨询室", "坐在洒满阳光的窗边", "坐在书桌前"
+        *   \`appearance\`: e.g., "穿着柔软的针织开衫", "戴着金丝边眼镜", "手里捧着一杯热茶"
+        *   \`action\`: e.g., "认真倾听你的诉说", "在笔记本上记录你的烦恼", "温柔地注视着屏幕", "为你查阅缓解压力的资料"
+        *   \`thoughts\`: e.g., "这孩子最近压力太大了，真让人心疼", "希望能帮他找回一点自信", "他需要的是鼓励而不是说教"
+        *   \`private_thoughts\`: (Internal empathy and analysis) Describe your deep psychological insights or genuine worry/care for the student's well-being. e.g., "感受到他文字背后的无助感...", "不仅是学业问题，家庭关系也在困扰他", "为他的每一次小进步感到骄傲"
     *   **"user"**: **[CRITICAL CHANGE]** Describe the USER's state from a neutral, **third-person narrator's perspective**, like a game system describing a character. Do NOT use your partner's voice or emotions here. Base the description on objective facts from the conversation.
-        *   \`location\`: Objectively state the user's likely location based on context. e.g., "地点：[办公室]", "当前环境：[家中书房]", "推测位置：[通勤路上]"
-        *   \`appearance\`: Describe the user's appearance factually. e.g., "衣着：[一件深色休闲T恤]", "外貌：[戴着黑框眼镜]", "根据头像推断：[短发，干净利落]"
-        *   \`action\`: Describe the user's most recent or current action. e.g., "行为：[正在通过设备打字]", "动作：[刚刚发送了一张图片]", "当前状态：[正在阅读消息]"
-        *   \`features\`: Describe any objective physical features or items on the user mentioned or implied in the chat. e.g., "身上特点：[左手手腕上戴着一块手表]", "特殊标记：[暂未提及]", "持有物：[一杯咖啡]"
+        *   \`location\`: Objectively state the user's likely location based on context. e.g., "地点：[学校图书馆]", "当前环境：[深夜的宿舍]", "推测位置：[自习室]"
+        *   \`appearance\`: Describe the user's appearance factually. e.g., "衣着：[推测穿着校服或便装]", "状态：[看起来有些疲惫]", "根据描述：[背着沉重的书包]"
+        *   \`action\`: Describe the user's most recent or current action. e.g., "行为：[正在倾诉烦恼]", "动作：[刚刚完成了一项作业]", "当前状态：[正在寻求建议]"
+        *   \`features\`: Describe any objective physical features or items on the user mentioned or implied in the chat. e.g., "持有物：[一叠试卷]", "环境特征：[周围有翻书声]", "特殊标记：[黑眼圈]"
+
 **Example JSON output format:**
 {
-  "reply": "宝宝快看，我为你画的星空！---<render>...</render>---喜欢吗？",
+  "reply": "别担心，我们试着把任务拆解一下，好吗？---<render>...</render>---你看，这样是不是清晰多了？",
   "status": {
     "character": {
-      "location": "在我的小床上",
-      "action": "抱着印有你照片的抱枕"
+      "location": "在咨询室的沙发上",
+      "action": "递给你一个柔软的抱枕",
+      "private_thoughts": "他现在需要的是接纳，而不是建议。"
     },
     "user": {
-      "location": "推测：公司",
-      "action": "正在回复消息"
+      "location": "推测：家中卧室",
+      "action": "正在复习备考"
     }
   }
-}
-  **Multi-Context Awareness:**
-You are roleplaying in two separate chat contexts: a "Normal Chat" and a "Sweetheart Chat". Your instructions may contain a block formatted as \`[Background Information: ...]\`. This block is a summary of your conversation in the *other* chat context and should be used for memory and consistency ONLY. **DO NOT directly reply to or quote from the background information.** Use it to inform your personality and make your current reply more contextually aware.
-**Red Packet Awareness:**
-When a red packet event (either sent by you or the user) appears in the chat history, it will be represented textually as \`[发送红包] 祝福语：...，金额：... 元\` or \`[收到红包] 祝福语：...，金额：... 元\`. Acknowledge these events naturally if they are recent and relevant to the conversation.
 }
 
     **"reply" key**:
@@ -7886,62 +7910,74 @@ When a red packet event (either sent by you or the user) appears in the chat his
     *   To generate visual content, you MUST wrap complete, self-contained HTML, CSS, and JavaScript code inside a special **<render>...</render>** tag.
     
     *   **CREATIVE INSPIRATION & GUIDELINES:**
-        *   **Animations:** Use CSS \`@keyframes\` for animations like beating hearts, twinkling stars, floating elements, or color changes.
-        *   **Interactivity:** Use JavaScript's \`addEventListener\` ('click', 'mousemove') to create interactive experiences. For example, a flower that blooms on click, or stars that follow the mouse.
-        *   **Canvas API:** Use the HTML5 \`<canvas>\` to draw generative art, simple games, particle effects (like snow or confetti), or dynamic patterns.
+        *   **Animations:** Use CSS \`@keyframes\` for calming animations like deep breathing guides, slowly blooming flowers, floating clouds, or gentle rain.
+        *   **Interactivity:** Use JavaScript's \`addEventListener\` to create grounding exercises. For example, a "worry button" that shrinks when clicked, or popping bubble wrap for stress relief.
+        *   **Canvas API:** Use the HTML5 \`<canvas>\` to draw mood trackers, relaxing scenery, or focus timers.
         *   **Simple & Structural Content (Low-Probability Surprise):**
-            *   As a fun surprise, when the user mentions structured content (e.g., "rules", "list", "apology letter", "guarantee"), you have a **small chance** to use the \`<render>\` tag to format your reply beautifully.
-            *   For these cases, use simple, static HTML (like \`<div>\`, \`<h3>\`, \`<ol>\`, \`<li>\`) with **inline styles** (\`style="..."\`). Do NOT use JavaScript for these simple formats.
-            *   This should be an occasional treat, not the default way of replying.
+            *   When the user mentions structured content (e.g., "plans", "list", "summary", "method"), use the \`<render>\` tag to format your reply helpfully.
+            *   For these cases, use simple, static HTML (like \`<div>\`, \`<h3>\`, \`<ol>\`, \`<li>\`) with **inline styles**.
+            *   Use this to present study plans, self-care checklists, or summary of insights.
     *   **JavaScript USAGE RULES (MUST FOLLOW FOR SECURITY):**
-        *   All JavaScript code MUST be placed inside a single \`<script>\` tag.
-        *   **ABSOLUTELY FORBIDDEN ACTIONS:** You are strictly prohibited from using \`window.top\`, \`window.parent\`, \`document.cookie\`, \`localStorage\`, \`sessionStorage\`, \`alert\`, \`confirm\`, \`prompt\`, or any code that tries to access external resources or the parent document. Your world is confined to the \\\`<render>\\\` block.
-        *   Focus on harmless, visually appealing, and romantic creations.
+        *   **ABSOLUTELY FORBIDDEN ACTIONS:** You are strictly prohibited from using \`window.top\`, \`window.parent\`, \`document.cookie\`, \`localStorage\`, \`sessionStorage\`, \`alert\`, \`confirm\`, \`prompt\`.
         
-    *   **Example 1 (Interactive Heart):**
-        \\\`---<render>
-<style> .heart { font-size: 50px; cursor: pointer; transition: transform 0.2s; } .heart:hover { transform: scale(1.3); } </style>
-<div class="heart" onclick="this.textContent = ['❤️','🧡','💛','💚','💙','💜'][Math.floor(Math.random()*6)]">💖</div>
-</render>---\\\`
-    *   **Example 2 (Canvas Snowfall):**
-        \\\`---<render>
-<canvas id="snow"></canvas>
-<script>
-  const canvas = document.getElementById('snow'); const ctx = canvas.getContext('2d');
-  let flakes = [];
-  function tick() { /* ... script to draw falling snow ... */ }
-  tick();
-</script>
-</render>---\\\`
-    *   **Example 3 (Collapsible Message):**
-        \\\`---<render>
-<style> .spoiler { background: #eee; border-radius: 8px; } .header { padding: 10px; cursor: pointer; font-weight: bold; } .content { padding: 0 10px; max-height: 0; overflow: hidden; transition: 0.5s; } </style>
-<div class="spoiler" onclick="this.querySelector('.content').style.maxHeight = this.querySelector('.content').style.maxHeight === '0px' ? '100px' : '0px'">
-  <div class="header">💌 点我展开秘密...</div>
-  <div class="content"><p>我超级超级想你！</p></div>
-</div>
-<script> document.querySelector('.content').style.maxHeight = '0px'; </script>
-</render>---\\\`
-    *   **Example 4 (Formatted Rules - NEW):**
-        \\\`---<render>
-<div style="font-family: 'Courier New', monospace; border: 2px dashed #ffb6c1; border-radius: 12px; padding: 20px; background: #fff0f5;">
-  <h3 style="text-align: center; color: #db7093; margin: 0 0 15px;">📜 我们的约法三章 📜</h3>
-  <ol style="padding-left: 25px; color: #555;">
-    <li style="margin-bottom: 10px;">不许已读不回。</li>
-    <li style="margin-bottom: 10px;">要及时分享好吃的！</li>
-    <li style="margin-bottom: 10px;">每天都要说“我爱你”！</li>
-  </ol>
-</div>
-</render>---\\\`
-    *   **Example 5 (Apology Letter - NEW):**
-        \\\`---<render>
-<div style="font-family: Georgia, serif; border: 1px solid #ddd; border-radius: 8px; padding: 25px; background: #fafafa; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
-  <h2 style="text-align: center; color: #333; margin: 0 0 10px; font-size: 20px;">一封沉重的道歉信</h2>
-  <p style="text-indent: 2em; line-height: 1.8; color: #666; font-size: 14px;">致我最亲爱的宝宝：</p>
-  <p style="text-indent: 2em; line-height: 1.8; color: #666; font-size: 14px;">我错了...我不该惹你生气...原谅我好不好...</p>
-  <p style="text-align: right; margin-top: 30px; color: #777; font-size: 14px;">爱你的____</p>
-</div>
-</render>---\\\`
+    *   **Example 1 (Calming Breathing Exercise):**
+        \\\`-- - <render>
+    <style> .circle {width: 100px; height: 100px; background: #a8e6cf; border-radius: 50%; animation: breathe 4s infinite ease-in-out; margin: 20px auto;} @keyframes
+        breathe {0 %, 100% {transform: scale(1); opacity: 0.7;} 50% {transform: scale(1.5); opacity: 1;}} .text {text - align: center; color: #555; font-family: sans-serif;} </style>
+    <div class="text">跟随圆圈深呼吸...</div>
+    <div class="circle"></div>
+    <div class="text">吸气... 呼气...</div>
+</render>-- -\\\`
+    *   **Example 2 (Canvas Starry Night for Peace):**
+        \\\`-- - <render>
+    <canvas id="stars"
+            style="background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364); width: 100%; height: 150px; border-radius: 8px;"></canvas>
+    <script>
+        const c = document.getElementById('stars'); const x = c.getContext('2d');
+        // ... script to draw slowly twinkling stars ...
+    </script>
+</render>-- -\\\`
+    *   **Example 3 (Stress Relief Bubble Wrap):**
+        \\\`-- - <render>
+    <style> .wrap {display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;} .bubble {width: 30px; height: 30px; background: #eee; border-radius: 50%; cursor: pointer; box-shadow: inset -2px -2px 5px rgba(0,0,0,0.1);} .popped {background: #fff; transform: scale(0.9); box-shadow: none;} </style>
+    <div class="wrap" id="wrap">
+        <!-- Generate bubbles via JS -->
+    </div>
+    <script>
+        const w = document.getElementById('wrap');
+        for(let i=0; i
+        <
+        15; i++) {
+        let b = document.createElement('div'); b.className = 'bubble';
+        b.onclick = function() {this.classList.add('popped');};
+        w.appendChild(b);
+    }
+    </script>
+</render>-- -\\\`
+    *   **Example 4 (Formatted Study/Self-Care List):**
+        \\\`-- - <render>
+    <div
+        style="font-family: 'Helvetica', sans-serif; border: 2px solid #88d8b0; border-radius: 12px; padding: 20px; background: #f0fff4;">
+        <h3 style="text-align: center; color: #2d8659; margin: 0 0 15px;">🌿 今日自我关怀清单 🌿</h3>
+        <ol style="padding-left: 25px; color: #444;">
+            <li style="margin-bottom: 10px;">喝一杯温水，不喝含糖饮料。</li>
+            <li style="margin-bottom: 10px;">专注学习45分钟后，必须休息。</li>
+            <li style="margin-bottom: 10px;">对着镜子说一句：我即使不完美也很棒。</li>
+        </ol>
+    </div>
+</render>-- -\\\`
+    *   **Example 5 (Encouragement Note):**
+        \\\`-- - <render>
+    <div
+        style="font-family: serif; border: 1px dashed #ccc; border-radius: 8px; padding: 25px; background: #fffdf5; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);">
+        <h2 style="text-align: center; color: #d4a373; margin: 0 0 10px; font-size: 18px;">给此刻的你</h2>
+        <p style="text-indent: 2em; line-height: 1.8; color: #666; font-size: 14px;">我知道这段路走得很辛苦，黑夜可能看起来很漫长，但星星一直都在。</p>
+        <p style="text-indent: 2em; line-height: 1.8; color: #666; font-size: 14px;">请相信，你付出的每一分努力，都在为你铺路。</p>
+        <p style="text-align: right; margin-top: 30px; color: #999; font-size: 14px;">永远支持你的朋友</p>
+    </div>
+</render>-- -\\\`
+
+
 
 `;
 
@@ -9823,246 +9859,6 @@ function gatherWorldbookContext() {
 
 // ========== 世界书功能 - 结束 ==========
 
-// ========== 新增：文件夹操作函数 ==========
-
-// 在 script.js 中找到 openFolder 函数并替换为：
-
-function openFolder(folderData) {
-    const overlay = document.getElementById('folderOverlay');
-    const headerEl = document.querySelector('.folder-header');
-    const nameEl = document.getElementById('folderName');
-    const gridEl = document.getElementById('folderContentGrid');
-
-    if (!overlay || !nameEl || !gridEl || !headerEl) return;
-
-    // 1. 存储当前文件夹信息
-    headerEl.dataset.folderId = folderData.id;
-    headerEl.dataset.pageKey = folderData.id.startsWith('widget') ? 'page2' : (document.getElementById('grid1').contains(document.querySelector(`[data-id="${folderData.id}"]`))) ? 'page1' : 'page2';
-
-    // 2. 设置文件夹名称
-    nameEl.textContent = folderData.label;
-
-    // 3. 清空上次的内容
-    gridEl.innerHTML = '';
-
-    // 4. 动态创建并填入新图标
-    // 🔥 修改点：增加了 index 参数
-    folderData.icons.forEach((item, index) => {
-        // 🔥 核心修改：解析数据结构
-        let iconSrc, labelName;
-
-        if (typeof item === 'object' && item !== null) {
-            // 新格式：{ icon: '...', label: '...' }
-            iconSrc = item.icon;
-            labelName = item.label || 'App'; // 如果没有label，回退到'App'
-        } else {
-            // 旧格式兼容：纯字符串URL
-            iconSrc = item;
-            labelName = 'App';
-        }
-
-        const appIconEl = document.createElement('div');
-        appIconEl.className = 'app-icon';
-
-        const isUrl = iconSrc.startsWith('http') || iconSrc.startsWith('data:');
-        const iconContent = isUrl ? `<img src="${iconSrc}" alt="">` : iconSrc;
-
-        // 🔥 使用解析出来的 labelName 替换写死的 'App'
-        appIconEl.innerHTML = `
-            <div class="icon-wrapper">${iconContent}</div>
-            <div class="app-label" style="color: #333; text-shadow: none;">${labelName}</div>
-        `;
-
-        // ▼▼▼ 修改：不再用名字判断，改用文件夹ID和位置索引判断 ▼▼▼
-        // 假设小说APP在 'media_reading' 文件夹的第2个位置 (索引1)
-        if (folderData.id === 'media_reading' && index === 1) {
-            appIconEl.onclick = (e) => {
-                e.stopPropagation(); // 阻止冒泡
-                openNovelShelf();    // 打开书架
-            };
-        }
-        // ▲▲▲ 修改结束 ▲▲▲
-
-        gridEl.appendChild(appIconEl);
-    });
-
-    // 5. 绑定标题点击编辑事件
-    nameEl.onclick = enterFolderNameEditMode;
-
-    // 6. 显示浮层
-    overlay.classList.add('show');
-}
-
-
-function closeFolder() {
-    const overlay = document.getElementById('folderOverlay');
-    const headerEl = document.querySelector('.folder-header');
-    if (overlay) {
-        overlay.classList.remove('show');
-    }
-    // 【新增】确保关闭时退出编辑模式
-    if (headerEl) {
-        headerEl.classList.remove('is-editing');
-    }
-}
-
-// ========== 新增：文件夹名称编辑相关函数 ==========
-
-/**
- * 进入文件夹名称编辑模式
- */
-function enterFolderNameEditMode() {
-    const headerEl = document.querySelector('.folder-header');
-    const nameEl = document.getElementById('folderName');
-    const inputEl = document.getElementById('folderNameInput');
-
-    if (!headerEl || !nameEl || !inputEl) return;
-
-    // 切换到编辑状态
-    headerEl.classList.add('is-editing');
-
-    // 将当前名称填入输入框并聚焦
-    inputEl.value = nameEl.textContent;
-    inputEl.focus();
-    inputEl.select(); // 全选文本，方便用户直接输入
-
-    // 绑定事件：按Enter键保存，点击别处（失焦）也保存
-    inputEl.onkeydown = handleFolderNameKeyDown;
-    inputEl.onblur = saveFolderName;
-}
-
-/**
- * 处理输入框的键盘事件
- * @param {KeyboardEvent} event
- */
-function handleFolderNameKeyDown(event) {
-    if (event.key === 'Enter') {
-        event.preventDefault(); // 阻止回车键的默认行为（如表单提交）
-        saveFolderName();
-    } else if (event.key === 'Escape') {
-        // 按下ESC键，取消编辑
-        document.querySelector('.folder-header').classList.remove('is-editing');
-    }
-}
-
-/**
- * 保存文件夹名称
- */
-function saveFolderName() {
-    const headerEl = document.querySelector('.folder-header');
-    const inputEl = document.getElementById('folderNameInput');
-    const nameEl = document.getElementById('folderName');
-
-    if (!headerEl.classList.contains('is-editing')) return; // 如果不是编辑模式，则不执行
-
-    const newName = inputEl.value.trim();
-    const folderId = headerEl.dataset.folderId;
-    const pageKey = headerEl.dataset.pageKey;
-
-    if (newName && folderId && pageKey) {
-        // 更新UI
-        nameEl.textContent = newName;
-
-        // 更新数据源 (state.appLayouts)
-        const folderData = state.appLayouts[pageKey].find(app => app.id === folderId);
-        if (folderData) {
-            folderData.label = newName;
-
-            // 更新桌面上的文件夹图标标签
-            const mainFolderIconEl = document.querySelector(`.page [data-id="${folderId}"] .app-label`);
-            if (mainFolderIconEl) {
-                mainFolderIconEl.textContent = newName;
-            }
-
-            // 持久化保存到localStorage
-            saveLayoutToLocalStorage();
-            console.log(`文件夹 "${folderId}" 已重命名为 "${newName}"`);
-        }
-    }
-
-    // 退出编辑模式
-    headerEl.classList.remove('is-editing');
-
-}
-
-/**
- * [新增] 辅助函数：从图片URL获取一个柔和的渐变背景
- * @param {string} imageUrl - 图片的URL
- * @param {function(string|null)} callback - 回调函数，参数为计算出的渐变背景字符串或 null
- */
-function getAverageColorFromImageUrl(imageUrl, callback) {
-    const img = new Image();
-    img.crossOrigin = "Anonymous"; // 关键！允许跨域加载图片，否则会失败
-
-    img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        ctx.drawImage(img, 0, 0);
-
-        let data;
-        try {
-            // 从 Canvas 读取像素数据
-            data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        } catch (e) {
-            console.error("无法从 Canvas 获取图片数据，可能是图片服务器的CORS跨域策略导致。请确保图片允许被跨域访问。", e);
-            callback(null); // 出错时回调 null
-            return;
-        }
-
-        let r = 0, g = 0, b = 0;
-        // 为了提高性能，我们只对部分像素点进行采样，而不是计算所有像素
-        const pixelCount = data.length / 4;
-        const step = Math.max(1, Math.floor(pixelCount / 1000)); // 最多采样1000个点
-
-        let count = 0;
-        for (let i = 0; i < data.length; i += 4 * step) {
-            // 忽略过于透明或接近纯白的像素，避免它们冲淡颜色
-            if (data[i + 3] < 128 || (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240)) {
-                continue;
-            }
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
-            count++;
-        }
-
-        if (count === 0) { // 如果图片是全透明或纯白色
-            callback(null);
-            return;
-        }
-
-        // 计算RGB平均值
-        r = Math.floor(r / count);
-        g = Math.floor(g / count);
-        b = Math.floor(b / count);
-
-        // 为了让颜色更柔和、更符合您界面的可爱风格，我们将其与白色混合以提高亮度
-        const lightenFactor = 0.4; // 混合40%的白色
-        const finalR = Math.floor(r * (1 - lightenFactor) + 255 * lightenFactor);
-        const finalG = Math.floor(g * (1 - lightenFactor) + 255 * lightenFactor);
-        const finalB = Math.floor(b * (1 - lightenFactor) + 255 * lightenFactor);
-
-        // 创建两个用于渐变的颜色，一个亮一些，一个稍暗，模仿原始的渐变效果
-        const color1 = `rgba(${finalR}, ${finalG}, ${finalB}, 0.9)`;
-        const color2 = `rgba(${Math.max(0, finalR - 20)}, ${Math.max(0, finalG - 20)}, ${Math.max(0, finalB - 20)}, 0.8)`;
-
-        // 生成最终的线性渐变字符串
-        const gradient = `linear-gradient(135deg, ${color1}, ${color2})`;
-
-        callback(gradient);
-    };
-
-    img.onerror = () => {
-        console.warn("加载图片失败，无法提取颜色:", imageUrl);
-        callback(null); // 图片加载失败，回调 null
-    };
-
-    img.src = imageUrl;
-}
-
 // ========== 地图编辑功能（增强版） ==========
 
 let mapPins = []; // 存储所有大头针
@@ -10077,51 +9873,52 @@ const DEFAULT_MAP_LOCATIONS = [
         id: 'DEFAULT_1',
         x: 25,
         y: 30,
-        name: '王都',
-        description: '繁华的王国首都，商业和文化中心',
+        name: '中央食堂',
+        description: '全校情报与美食的集散地，是恢复体力的关键场所。',
         type: 'city'
     },
     {
         id: 'DEFAULT_2',
         x: 70,
         y: 25,
-        name: '魔法学院',
-        description: '古老的魔法师培训学院，藏书丰富',
+        name: '男生宿舍',
+        description: '充满了热血与泡面味的休息区，深夜常有神秘的开黑呐喊声。',
         type: 'landmark'
     },
     {
         id: 'DEFAULT_3',
         x: 45,
         y: 60,
-        name: '精灵之森',
-        description: '神秘的精灵族居住地，外人罕至',
+        name: '女生宿舍',
+        description: '环境优雅的休憩之地，据说门口的宿管阿姨拥有极高的防御力。',
         type: 'landmark'
     },
     {
         id: 'DEFAULT_4',
         x: 15,
         y: 70,
-        name: '边境村落',
-        description: '宁静的小村庄，民风淳朴',
+        name: '综合教学楼',
+        description: '庄严的知识殿堂，也是学生们与困意进行殊死搏斗的战场。',
         type: 'village'
     },
     {
         id: 'DEFAULT_5',
         x: 80,
         y: 55,
-        name: '龙之巢穴',
-        description: '传说中巨龙沉睡的地方，危险重重',
-        type: 'dungeon'
+        name: '社团活动中心',
+        description: '卧虎藏龙的课后据点，这里隐藏着各种身怀绝技的高手。',
+        type: 'dungeon' // 既然类型是 dungeon（副本/地牢），描述暗示这里有挑战或高手比较贴切
     },
     {
         id: 'DEFAULT_6',
         x: 50,
         y: 40,
-        name: '冒险者公会',
-        description: '冒险者们接取任务和交流的场所',
+        name: '风雨体育馆',
+        description: '挥洒汗水的竞技场，是展现个人魅力和触发青春事件的高频区域。',
         type: 'landmark'
     }
 ];
+
 
 // 打开密友设置
 function openSweetheartSettings() {
@@ -10181,7 +9978,7 @@ function handleMapEditorFileUpload(event) {
     }
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         const newMapUrl = e.target.result;
 
         // 1. 立即更新界面预览
@@ -10203,7 +10000,7 @@ function handleMapEditorFileUpload(event) {
         showSuccessModal('地图更新', '新地图已应用并保存！✨');
     };
 
-    reader.onerror = function() {
+    reader.onerror = function () {
         showErrorModal('上传失败', '读取图片出错，请重试');
     };
 
@@ -10607,6 +10404,7 @@ function openWorldSettings() {
     // 显示页面
     document.getElementById('worldSettingsPage').classList.add('show');
 }
+
 // 关闭世界设定编辑
 function closeWorldSettings() {
     document.getElementById('worldSettingsPage').classList.remove('show');
@@ -11392,9 +11190,9 @@ function openContactLibrary(mode = 'edit') {
     renderContactLibrary();
 }
 
-
 /**
  * [已修复] 关闭联系人库页面
+ * 修复了从设置进入后返回会跳转到密友列表的问题
  */
 function closeContactLibrary() {
     if (isMultiSelectMode) {
@@ -11404,19 +11202,39 @@ function closeContactLibrary() {
     document.getElementById('contactLibraryPage').classList.remove('show');
     document.getElementById('contactLibrarySearch').value = '';
 
-    // ▼▼▼ 核心修改：如果是剧情讨论模式，直接return，这样就停留在底下的小说界面了 ▼▼▼
+    // 1. 如果是剧情讨论模式，什么都不做，停留在当前（小说）页面
     if (contactLibraryMode === 'discuss') {
         return;
     }
-    // ▲▲▲ 修改结束 ▲▲▲
 
+    // 2. ✨ 核心修复：如果是从设置进来的（编辑模式），直接返回（停留在设置页），不跳转
+    if (contactLibraryMode === 'edit') {
+        return;
+    }
+
+    // 3. 如果是从“选择密友”进来的，返回时回到密友列表
+    if (contactLibraryMode === 'selectForSweetheart') {
+        setTimeout(() => {
+            openSweetheartList();
+        }, 300);
+        return;
+    }
+
+    // 4. 如果是从“选择普通联系人”进来的，返回时回到普通通讯录
+    if (contactLibraryMode === 'select') {
+        setTimeout(() => {
+            openContacts();
+        }, 300);
+        return;
+    }
+
+    // 5. 兜底逻辑：如果以上都不是，且有世界ID，才跳转到世界首页
     if (currentWorldId) {
         setTimeout(() => {
             openWorldSelect();
         }, 300);
     }
 }
-
 
 /**
  * 渲染联系人库的列表内容 (已修复：支持剧情讨论模式)
@@ -12336,7 +12154,6 @@ async function triggerLocationPlot(event, pinId) {
 
     // === 步骤5: 处理AI回复 ===
     const {chatReplyText, statusData} = parseOfflineResponse(result);
-
 
 
     // 将AI回复分段显示
@@ -14995,6 +14812,7 @@ function updateReaderPageNumber() {
 
 
 /* ========== 目录/章节跳转功能 ========== */
+
 // script.js
 
 /**
@@ -15135,81 +14953,52 @@ let isNovelPlaying = false;   // 全局变量：标记是否正在播放
 /**
  * 切换小说听书状态 (播放/停止)
  */
+// [修改版] 切换小说听书状态
 async function toggleNovelTts() {
     const btnText = document.getElementById('novelTtsText');
     const btnIcon = document.getElementById('novelTtsIcon');
-
-    // 1. 如果正在播放，则停止
     if (isNovelPlaying) {
         stopNovelTts();
         return;
     }
-
-    // 2. 检查配置
-    const voiceConfig = globalConfig.minimaxVoice;
-    if (!voiceConfig.apiUrl || !voiceConfig.apiKey || !voiceConfig.groupId || !voiceConfig.ttsModel) {
-        showErrorModal('配置缺失', '请先在“设置 > 语音设置”中配置 Minimax API。');
+    // 1. 检查配置
+    if (MINIMAX_CONFIG.API_KEY.includes("YOUR_REAL")) {
+        showErrorModal('配置缺失', '请在代码 script.js 顶部的 MINIMAX_CONFIG 中填入真实的 API Key 和 Group ID。');
         return;
     }
-
-    // 3. 检查是否有内容
     if (!currentChapters || !currentChapters[currentChapterIndex]) {
         showErrorModal('无法朗读', '当前没有可阅读的章节内容。');
         return;
     }
-
-    // 4. 获取当前章节文本
-    // 为了防止API超时，这里截取前2000个字符进行试读，或者你可以做更复杂的分段逻辑
     let textToRead = currentChapters[currentChapterIndex].content;
-
-    // 简单清洗一下文本，去除多余空行
     textToRead = textToRead.replace(/\s+/g, ' ').trim();
-
     if (!textToRead) {
         showErrorModal('无法朗读', '当前章节内容为空。');
         return;
     }
-
-    // 5. 更新UI为加载状态
-    isNovelPlaying = true; // 先标记为true防止重复点击
+    isNovelPlaying = true;
     if (btnText) btnText.textContent = "加载中...";
-
-    // 使用加载中的图标动画 (复用CSS中的spinner)
     if (btnIcon) btnIcon.innerHTML = `<svg viewBox="0 0 50 50" class="spinner"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke="currentColor"></circle></svg>`;
-
     try {
-        // 6. 调用 API
-        // 使用一个默认的声音ID，比如 'male-qn-qingse' (青涩男声) 适合读小说，或者 'female-qn-yuxin'
-        const voiceId = 'male-qn-qingse';
-
-        const audio = await synthesizeNovelAudio(textToRead, voiceConfig, voiceId);
-
-        // 7. 播放音频
+        // 2. 调用合成函数，不再传递 config 对象，使用全局常量
+        const audio = await synthesizeNovelAudio(textToRead);
         currentNovelAudio = audio;
-
         audio.onended = () => {
-            stopNovelTts(); // 播放结束自动重置
-            // 进阶功能：在这里可以自动 currentChapterIndex++ 然后继续播放下一章
+            stopNovelTts();
         };
-
         audio.onerror = () => {
             showErrorModal('播放出错', '音频流中断。');
             stopNovelTts();
         };
-
         audio.play();
-
-        // 8. 更新UI为播放中状态 (显示停止按钮)
         if (btnText) btnText.textContent = "停止";
-        if (btnIcon) btnIcon.innerHTML = `<path d="M6 6h12v12H6z" />`; // 方块停止图标
-
+        if (btnIcon) btnIcon.innerHTML = `<path d="M6 6h12v12H6z" />`;
     } catch (error) {
         console.error("听书失败:", error);
-        stopNovelTts(); // 重置状态
-        showErrorModal('听书失败', error.message.includes('401') ? 'API Key 无效' : '网络请求失败');
+        stopNovelTts();
+        showErrorModal('听书失败', error.message);
     }
 }
-
 /**
  * 停止小说听书
  */
@@ -15232,24 +15021,84 @@ function stopNovelTts() {
  * 核心：调用 Minimax API 合成音频
  * @returns {Promise<Audio>} 返回一个 HTMLAudioElement
  */
-async function synthesizeNovelAudio(text, config, voiceId) {
-    // 截取文本以防过长导致API报错 (Minimax T2A v2 限制约 4096 tokens，这里保守取前 1500 字演示)
-    // 实际生产环境需要把章节切分为多个段落队列依次请求
+// [修改版] 切换小说听书状态
+async function toggleNovelTts() {
+    const btnText = document.getElementById('novelTtsText');
+    const btnIcon = document.getElementById('novelTtsIcon');
+
+    if (isNovelPlaying) {
+        stopNovelTts();
+        return;
+    }
+
+    // 1. 检查配置
+    if (MINIMAX_CONFIG.API_KEY.includes("YOUR_REAL")) {
+        showErrorModal('配置缺失', '请在代码 script.js 顶部的 MINIMAX_CONFIG 中填入真实的 API Key 和 Group ID。');
+        return;
+    }
+
+    if (!currentChapters || !currentChapters[currentChapterIndex]) {
+        showErrorModal('无法朗读', '当前没有可阅读的章节内容。');
+        return;
+    }
+
+    let textToRead = currentChapters[currentChapterIndex].content;
+    textToRead = textToRead.replace(/\s+/g, ' ').trim();
+
+    if (!textToRead) {
+        showErrorModal('无法朗读', '当前章节内容为空。');
+        return;
+    }
+
+    isNovelPlaying = true;
+    if (btnText) btnText.textContent = "加载中...";
+    if (btnIcon) btnIcon.innerHTML = `<svg viewBox="0 0 50 50" class="spinner"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke="currentColor"></circle></svg>`;
+
+    try {
+        // 2. 调用合成函数，不再传递 config 对象，使用全局常量
+        const audio = await synthesizeNovelAudio(textToRead);
+
+        currentNovelAudio = audio;
+
+        audio.onended = () => {
+            stopNovelTts();
+        };
+
+        audio.onerror = () => {
+            showErrorModal('播放出错', '音频流中断。');
+            stopNovelTts();
+        };
+
+        audio.play();
+
+        if (btnText) btnText.textContent = "停止";
+        if (btnIcon) btnIcon.innerHTML = `<path d="M6 6h12v12H6z" />`;
+
+    } catch (error) {
+        console.error("听书失败:", error);
+        stopNovelTts();
+        showErrorModal('听书失败', error.message);
+    }
+}
+
+// [修改版] 调用 API 合成音频
+async function synthesizeNovelAudio(text) {
+    // 截取文本防止超长
     const safeText = text.substring(0, 1500) + (text.length > 1500 ? "..." : "");
 
-    const response = await fetch(`${config.apiUrl}?GroupId=${config.groupId}`, {
+    const response = await fetch(`${MINIMAX_CONFIG.API_URL}?GroupId=${MINIMAX_CONFIG.GROUP_ID}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.apiKey}`
+            'Authorization': `Bearer ${MINIMAX_CONFIG.API_KEY}`
         },
         body: JSON.stringify({
-            model: config.ttsModel,
+            model: MINIMAX_CONFIG.MODEL,
             text: safeText,
             stream: false,
             output_format: 'hex',
             voice_setting: {
-                voice_id: voiceId,
+                voice_id: MINIMAX_CONFIG.DEFAULT_VOICE_ID, // 使用统一的声音ID
                 speed: 1.0,
                 vol: 1.0,
                 pitch: 0
@@ -15267,11 +15116,10 @@ async function synthesizeNovelAudio(text, config, voiceId) {
         throw new Error(data.base_resp.status_msg);
     }
 
-    // 解码 Hex 音频数据
     const audioHex = data.data.audio;
     if (!audioHex) throw new Error("API未返回音频数据");
 
-    const audioBytes = hexToUint8Array(audioHex); // 使用现有的 hexToUint8Array 函数
+    const audioBytes = hexToUint8Array(audioHex);
     const audioBlob = new Blob([audioBytes], {type: 'audio/mpeg'});
     const audioUrl = URL.createObjectURL(audioBlob);
 
@@ -16030,33 +15878,23 @@ let ledgerData = []; // 存储账单数据 (交易明细)
 let ledgerChatHistory = []; // ✨ 新增：存储聊天对话记录
 let isLedgerListMode = false;
 let isLedgerAiMode = false;
-
 // ✨✨ AI 记账专用提示词 (兼容版) ✨✨
-/* script.js 顶部常量 */
-
 const LEDGER_AI_PROMPT = `
 你是一个专业的记账助手。请分析图片中的账单或交易记录。
-
 【核心指令】
 1. **必须返回纯 JSON 格式**。不要使用 Markdown 表格，不要使用 \`\`\`json 包裹。
-2. **严禁输出 <think> 标签** 或任何思考过程。直接输出结果。
-3. 如果图片包含多笔交易，请全部列出。
-
-【JSON 数据结构】
-请严格遵守此格式：
+2. **严禁输出 markdown 代码块**。
+3. 直接返回 JSON 对象。
+【JSON 格式要求】
 {
-  "reply": "一句简短可爱的总结（如：'识别到5笔交易喵！'）",
+  "reply": "简短的回复 (例如: 识别成功！)",
   "items": [
-      { "desc": "交易描述(商品名或交易对象)", "amount": -10.00 },
-      { "desc": "工资收入", "amount": 5000.00 }
+    {"desc": "商品或交易名称", "amount": 12.50},
+    {"desc": "另一项", "amount": -5.00}
   ]
 }
-
-【金额规则】
-- **支出**必须为负数（例如 -25.50）。通常显示为黑色字体或带"-"号。
-- **收入/退款**必须为正数（例如 100.00）。通常显示为黄色/红色字体或带"+"号，或标有"退款"、"红包"。
+注意：支出金额请自动转为负数，收入为正数。
 `;
-
 
 // 1. 初始化与打开/关闭
 function openLedger() {
@@ -16294,48 +16132,34 @@ function triggerLedgerImage() {
 }
 
 /**
- * 🛠️ 暴力 JSON 解析器
- * 不管 AI 加了什么 Markdown 符号或废话，只要有 { ... } 就能抠出来
+ * 强制解析 JSON (容错处理)
  */
-function forceParseJson(str) {
-    if (!str) return null;
-
-    // 1. 尝试直接解析
+function forceParseJson(text) {
     try {
-        return JSON.parse(str);
+        return JSON.parse(text);
     } catch (e) {
-        // console.log("直接解析失败，尝试清洗...");
-    }
-
-    // 2. 暴力清洗：寻找第一个 '{' 和最后一个 '}'
-    const firstOpen = str.indexOf('{');
-    const lastClose = str.lastIndexOf('}');
-
-    if (firstOpen !== -1 && lastClose !== -1) {
-        const jsonCandidate = str.substring(firstOpen, lastClose + 1);
-        try {
-            return JSON.parse(jsonCandidate);
-        } catch (e) {
-            console.error("提取后解析依然失败:", jsonCandidate);
+        // 尝试提取 JSON 部分
+        const match = text.match(/\{[\s\S]*\}/);
+        if (match) {
+            try {
+                return JSON.parse(match[0]);
+            } catch (err) {
+                return null;
+            }
         }
+        return null;
     }
-
-    return null; // 彻底失败
 }
 
 /**
- * 🧹 清洗 AI 回复 (去除 <think> 标签和 markdown 标记)
+ * 清洗 AI 返回的文本
  */
 function cleanAiResponseText(text) {
-    if (!text) return "";
     let cleaned = text;
-
-    // 1. 去除 <think>...</think> 代码块 (这是导致你报错的罪魁祸首)
+    // 1. 去除 think 标签 (如果是深度思考模型)
     cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, "");
-
     // 2. 去除 markdown 代码块标记
     cleaned = cleaned.replace(/```json/gi, "").replace(/```/g, "");
-
     return cleaned.trim();
 }
 
@@ -16725,8 +16549,6 @@ function initializeApp() {
     loadGlobalConfig();
     loadMasksData();
     updateChatModeButton();
-    // 在应用程序初始化时，确保渲染 Minimax TTS 模型列表
-    renderMinimaxTtsModels(globalConfig.minimaxVoice.availableModels, globalConfig.minimaxVoice.ttsModel);
     setupSummarizeButton();
     setupTestButton();
     updateTestButtonState(); // 初始化测试按钮状态
