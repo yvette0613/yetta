@@ -3,12 +3,11 @@ const tencentcloud = require("tencentcloud-sdk-nodejs");
 const LkeClient = tencentcloud.lke.v20231130.Client;
 
 module.exports = async (req, res) => {
-  // 1. 设置跨域头 (允许网页访问)
+  // 1. 设置跨域头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // 处理预检请求
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -17,7 +16,6 @@ module.exports = async (req, res) => {
   try {
     const { fileType, isPublic } = req.body;
 
-    // 2. 初始化腾讯云客户端
     const client = new LkeClient({
       credential: {
         secretId: process.env.TENCENT_SECRET_ID,
@@ -31,7 +29,6 @@ module.exports = async (req, res) => {
       },
     });
 
-    // 3. 构造请求参数
     const params = {
       BotBizId: process.env.TENCENT_BOT_BIZ_ID,
       FileType: fileType || 'jpg',
@@ -39,43 +36,41 @@ module.exports = async (req, res) => {
       TypeKey: 'realtime'
     };
 
-    // 4. 调用接口
     const data = await client.DescribeStorageCredential(params);
 
     // ============================================
-    // 🔥 核心修复部分：数据格式化
+    // 🔥 核心修复：兼容两种数据结构
     // ============================================
-    // 腾讯云返回的数据结构是嵌套的：data.Response.Credentials.TmpSecretId
-    // 前端需要的是扁平的：TmpSecretId
-    
-    const response = data.Response || {};
-    const credentials = response.Credentials || {};
+    // SDK 返回的 data 可能直接就是数据，也可能包裹在 Response 里
+    // 我们用 || 运算符同时兼容这两种情况
+    const payload = data.Response || data;
+    const credentials = payload.Credentials || {};
 
-    // 我们把需要的所有字段都提到最外层
     const flatData = {
-      // 密钥信息 (从 Credentials 里拿)
+      // 密钥信息
       TmpSecretId: credentials.TmpSecretId,
       TmpSecretKey: credentials.TmpSecretKey,
       Token: credentials.Token,
       
-      // 文件信息 (从 Response 里拿)
-      Bucket: response.Bucket,
-      Region: response.Region,
-      UploadPath: response.UploadPath,
+      // 存储桶信息 (这就是之前报错缺少的 Bucket)
+      Bucket: payload.Bucket,
+      Region: payload.Region,
+      UploadPath: payload.UploadPath,
       
-      // 时间信息 (通常在 Response 里，也可能在 Credentials 里，做个兼容)
-      StartTime: credentials.StartTime || response.StartTime,
-      ExpiredTime: credentials.ExpiredTime || response.ExpiredTime,
-      
-      // 请求ID，方便排查
-      RequestId: data.RequestId
+      // 辅助信息
+      StartTime: credentials.StartTime || payload.StartTime,
+      ExpiredTime: credentials.ExpiredTime || payload.ExpiredTime,
+      RequestId: data.RequestId || payload.RequestId
     };
 
-    // 5. 返回处理好的扁平数据
+    // 调试日志（如果你会看Vercel后台日志的话可以看到这个）
+    console.log("Credential Success, Bucket:", flatData.Bucket);
+
     res.status(200).json(flatData);
 
   } catch (error) {
     console.error("Credential Error:", error);
+    // 把详细错误返回给前端，方便弹窗看到
     res.status(500).json({ error: error.message });
   }
 };
