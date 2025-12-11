@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- 🍎 iOS PWA 核心标签：启用WebApp模式，隐藏Safari浏览器UI -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- 🍎 设置 iOS 状态栏样式（时间、电量等）。可选值：default, black, black-translucent -->
+    <!-- 推荐使用 black-translucent，它会使顶部状态栏背景半透明，文字白色，更融入应用 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- 🍎 PWA 在桌面图标下方显示的应用程序名称 -->
+    <meta name="apple-mobile-web-app-title" content="Yetta以她小手机">
+    <!-- 🍎 PWA 的 Web Manifest 文件引用 -->
+    <!-- 请确保 manifest.json 文件的路径正确 -->
+    <link rel="manifest" href="./manifest.json">
+    <!-- 🍎 PWA 在 iOS 设备主屏幕上使用的图标 -->
+    <!-- 建议提供至少 180x180 像素的图标。请替换为你的图标实际路径 -->
+    <link rel="apple-touch-icon" href="./icons/icon1.png">
+
+    <title>Yetta以她小手机</title>
+    <!-- 1. 引入外部的CSS样式文件 -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="phone">
+    <div class="success-modal" id="successModal">
+        <div class="modal-content">
+            <h3 id="successModalTitle">操作成功</h3>
+            <p id="successModalMessage">你的设置已保存。</p>
+        </div>
+    </div>
+    <div class="screen" id="screen">
+        <div class="avatar-action-sheet" id="locationActionSheet">
+            <div class="action-sheet-backdrop" onclick="closeLocationChooser()"></div>
+            <div class="action-sheet-options">
+                <div class="action-option" onclick="selectRealLocation()">📍 获取真实地址</div>
+                <div class="action-option" onclick="selectVirtualLocation()">✏️ 填写虚拟地址</div>
+            </div>
+            <div class="action-sheet-options" style="margin-top: 0;">
+                <div class="action-option cancel" onclick="closeLocationChooser()">取消</div>
+            </div>
+        </div>
+        <div class="avatar-action-sheet" id="avatarActionSheet">
+            <div class="action-sheet-backdrop" onclick="closeAvatarActions()"></div>
+            <div class="action-sheet-options">
+                <div class="action-option" onclick="promptForUrl()">从 URL 填写</div>
+                <div class="action-option" onclick="triggerFileUpload()">从文件选择</div>
+            </div>
+            <div class="action-sheet-options" style="margin-top: 0;">
+                <div class="action-option cancel" onclick="closeAvatarActions()">取消</div>
+            </div>
+        </div>
+        <div class="pages-wrapper" id="pagesWrapper">
+            <div class="page" id="page1">
+                <div class="status-bar">
+                    <span>19:05</span>
+                    <div class="status-icons">
+                        <svg class="status-icon-svg" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd"
+                                  d="M12 4.5C7.31 4.5 3.19 6.84 1.33 10.33l1.83.92C4.69 8.23 8.01 6.5 12 6.5s7.31 1.73 8.84 4.75l1.83-.92C20.81 6.84 16.69 4.5 12 4.5zM12 9.5c-3.31 0-6.13 1.5-7.58 3.82l1.83.91C7.43 12.19 9.53 11.5 12 11.5s4.57.69 5.75 2.73l1.83-.91C18.13 11 15.31 9.5 12 9.5zM12 14.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z"></path>
+                        </svg>
+                        <div class="battery-container">
+                            <div class="battery-icon">
+                                <svg viewBox="0 0 26 14" fill="none">
+                                    <path d="M24 4.33333V9.66667C25.1046 9.66667 26 8.77123 26 7.66667C26 6.5621 25.1046 5.66667 24 5.66667V4.33333Z"
+                                          fill="currentColor"></path>
+                                    <path d="M1 4.66667C1 3.19391 2.19391 2 3.66667 2H20.3333C21.8061 2 23 3.19391 23 4.66667V9.33333C23 10.8061 21.8061 12 20.3333 12H3.66667C2.19391 12 1 10.8061 1 9.33333V4.66667Z"
+                                          stroke="currentColor" stroke-width="2"></path>
+                                </svg>
+                                <div class="battery-level"></div>
+                                <svg class="charging-bolt" viewBox="0 0 24 24">
+                                    <path d="M11 21v-8H7l5-10v8h4l-5 10z"></path>
+                                </svg>
+                            </div>
+                            <span class="battery-text">100%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="time-weather-section">
+                    <div class="time-card" id="timeCard">
+                        <!-- 背景层保持不变 -->
+                        <div class="card-background-wrapper">
+                            <div class="top-gingham-bg"></div>
+                            <div class="bottom-stripes-bg"></div>
+                            <div class="drip-divider"></div>
+                        </div>
+                        <div class="delete-time-btn" onclick="deleteTimeCard()">×</div>
+
+                        <!-- === 最终版时间内容容器 开始 === -->
+                        <!-- 新增一个.whiskers-bg层，用于放置胡须和新的棕色背景 -->
+                        <div class="whiskers-bg">
+                            <div class="final-time-container">
+                                <h2 id="finalMainTime">19:05</h2>
+                                <div id="finalMainDate" class="day">TUESDAY, MAR 21</div>
+                            </div>
+                        </div>
+                        <!-- === 最终版时间内容容器 结束 === -->
+                    </div>
+
+                    <div class="weather-card" id="weatherCard">
+                        <!-- 新增：背景包裹层 -->
+                        <div class="card-background-wrapper">
+                            <div class="top-gingham-bg"></div>      <!-- 用于上半部分的格子背景 -->
+                            <div class="bottom-stripes-bg"></div> <!-- 用于下半部分的条纹背景 -->
+                            <div class="drip-divider"></div>      <!-- 用于中间的波浪分割线 -->
+                        </div>
+
+                        <div class="delete-weather-btn" onclick="deleteWeatherCard()">×</div>
+
+                        <!-- 原有内容保持不变，它们会显示在新背景之上 -->
+                        <div class="top-row">
+                            <div class="location-display" onclick="openLocationChooser()">
+                                <span class="location-icon">📍</span>
+                                <span class="location-text" id="locationText">越秀区</span>
+                            </div>
+                            <div class="weather-display" onclick="toggleWeatherSelector(event)">
+                                <span class="current-weather-icon" id="currentWeatherIcon">☀️</span>
+                            </div>
+                        </div>
+
+                        <div class="mood-section" onclick="editMood(event)">
+                            <div class="mood-label">今日心情</div>
+                            <div class="mood-text" id="moodText">心情怎样呢？</div> <!-- 我把心情改成了“坏”以匹配你的截图 -->
+                        </div>
+
+                        <div class="weather-popup" id="weatherPopup" style="display: none;">
+                            <div class="weather-popup-title">选择天气</div>
+                            <div class="weather-options">
+                                    <span class="weather-option active" data-weather="sunny"
+                                          onclick="selectWeather('sunny', event)">☀️</span>
+                                <span class="weather-option" data-weather="cloudy"
+                                      onclick="selectWeather('cloudy', event)">☁️</span>
+                                <span class="weather-option" data-weather="rainy"
+                                      onclick="selectWeather('rainy', event)">🌧️</span>
+                                <span class="weather-option" data-weather="snowy"
+                                      onclick="selectWeather('snowy', event)">❄️</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="grid-container" id="grid1"></div>
+            </div>
+
+        </div>
+
+
+        <div class="edit-hint" id="editHint1">长按图标可以拖动调整位置</div>
+        <div class="edit-hint" id="editHint2">长按图标可以拖动调整位置</div>
+
+
+        <!-- ========== 新增：语音设置页面 ========== -->
+        <div class="config-page" id="voiceSettingsPage">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeVoiceSettingsPage()">←</div>
+                <div class="settings-title">语音设置</div>
+            </div>
+            <div class="settings-content">
+                <div class="section-title">Minimax 语音合成</div>
+
+                <div class="settings-section">
+                    <div class="form-group">
+                        <label class="form-label">API URL</label>
+                        <input type="text" class="form-input" id="minimaxApiUrl"
+                               placeholder="https://api.minimaxi.com/v1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">API Key</label>
+                        <input type="password" class="form-input" id="minimaxApiKey" placeholder="输入你的API Key">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Group ID</label>
+                        <input type="text" class="form-input" id="minimaxGroupId" placeholder="输入你的Group ID">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">TTS 模型</label>
+                        <select class="form-select" id="minimaxTtsModel">
+                            <option value="">请先拉取模型列表</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="fetch-btn" onclick="fetchMinimaxTtsModels()">拉取模型</button>
+                </div>
+                <div class="btn-group">
+                    <button class="save-btn" onclick="saveMinimaxVoiceSettings()">保存配置</button>
+                </div>
+                <div id="minimaxVoiceStatus"
+                     style="margin: 0 20px; font-size: 12px; color: #28a745; font-weight: 600;"></div>
+
+            </div>
+        </div>
+
+        <div class="config-page" id="databaseConfig">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeConfig('database')">←</div>
+                <div class="settings-title">数据库设置</div>
+            </div>
+            <div class="settings-content">
+                <div class="settings-section">
+                    <div class="form-group">
+                        <label class="form-label">Supabase URL</label>
+                        <input type="text" class="form-input" id="supabaseUrl" placeholder="https://xxxxx.supabase.co">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Supabase Anon Key</label>
+                        <input type="password" class="form-input" id="supabaseKey" placeholder="输入你的匿名密钥">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">表名称</label>
+                        <input type="text" class="form-input" id="tableName" placeholder="例如: user_data"
+                               value="user_data">
+                    </div>
+                </div>
+                <button class="save-btn" onclick="saveConfig('database')" style="margin: 20px;">保存并初始化</button>
+                <div id="dbStatus" style="margin: 0 20px; font-size: 12px; color: #28a745; font-weight: 600;"></div>
+            </div>
+        </div>
+
+        <div class="config-page" id="storageConfig">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeConfig('storage')">←</div>
+                <div class="settings-title">云存储设置</div>
+            </div>
+            <div class="settings-content">
+                <div class="settings-section">
+                    <div class="form-group">
+                        <label class="form-label">Storage Bucket名称</label>
+                        <input type="text" class="form-input" id="bucketName" placeholder="例如: icons" value="icons">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">文件上传路径</label>
+                        <input type="text" class="form-input" id="uploadPath" placeholder="例如: app-icons/"
+                               value="app-icons/">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大文件大小 (MB)</label>
+                        <input type="number" class="form-input" id="maxFileSize" placeholder="500" value="500">
+                    </div>
+                </div>
+                <button class="save-btn" onclick="saveConfig('storage')" style="margin: 20px;">保存配置</button>
+                <div id="storageStatus"
+                     style="margin: 0 20px; font-size: 12px; color: #28a745; font-weight: 600;"></div>
+            </div>
+        </div>
+
+        <div class="beautify-page" id="beautifyPage">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeBeautify()">←</div>
+                <div class="settings-title">美化</div>
+            </div>
+            <div class="settings-content">
+
+                <div class="settings-section">
+                    <div class="section-title">更换壁纸</div>
+                    <div class="wallpaper-grid" id="wallpaperGrid">
+                    </div>
+                </div>
+                <div class="settings-section" style="padding: 0 12px; margin-top: -8px;">
+                    <div class="app-preview-item">
+                        <div class="preview-header">
+                            <div class="preview-icon">🖼️</div>
+                            <div class="preview-name">自定义壁纸</div>
+                        </div>
+                        <div class="upload-section">
+                            <label class="upload-btn">
+                                📁 上传文件
+                                <input type="file" class="file-input" accept="image/*"
+                                       onchange="handleWallpaperUpload(event)">
+                            </label>
+                            <div class="url-input-btn" onclick="toggleWallpaperUrlInput()">🔗 URL填写</div>
+                        </div>
+                        <div class="url-input-box" id="wallpaper-url-box">
+                            <input type="text" class="url-input-field" id="wallpaper-url-input"
+                                   placeholder="输入图片URL">
+                            <button class="confirm-btn" onclick="applyWallpaperFromUrl()">确认</button>
+                        </div>
+                        <div class="status-message" id="wallpaper-status"></div>
+                    </div>
+                </div>
+                <div class="app-preview-list" id="appPreviewList">
+                </div>
+            </div>
+        </div>
+        <div class="config-page" id="widgetManager">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeWidgetManager()">←</div>
+                <div class="settings-title">组件管理</div>
+            </div>
+
+            <div class="settings-content">
+                <div class="section-title">自定义组件代码</div>
+
+                <div style="padding: 0 20px;">
+                    <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; color: #666; margin-bottom: 8px; font-weight: 600;">
+                            组件HTML代码
+                        </div>
+                        <textarea id="widgetCodeInput"
+                                  style="width: 100%; min-height: 200px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; resize: vertical;"
+                                  placeholder="示例代码：<div class='widget-scene'>
+                            <div style='position: absolute; bottom: 20px; right: 30px; font-size: 60px;'>🌺</div>
+                            </div>
+
+                            可用CSS选择器：
+                            .widget - 组件容器
+                            .widget-time - 顶部文字
+                            .widget-scene - 场景区域
+                            支持常见CSS样式"></textarea>
+                    </div>
+                    <button class="save-btn" onclick="applyCustomWidget()"
+                            style="width: 100%; margin-bottom: 16px;">应用组件
+                    </button>
+                </div>
+            </div>
+            <div class="section-title">已有组件</div>
+            <div id="savedWidgetsList" style="padding: 0 20px;"></div>
+        </div>
+
+        <!-- ========== 面具管理页面 - 开始 ========== -->
+        <div class="mask-library-page" id="maskLibraryPage">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeMaskLibrary()">←</div>
+                <div class="settings-title">面具管理</div>
+                <div class="add-contact-btn" onclick="openMaskModal()">+</div>
+            </div>
+
+            <div class="settings-content">
+                <div class="section-title">我的面具</div>
+                <div id="maskLibraryList">
+                    <div class="mask-empty" id="maskEmpty">
+                        <div class="mask-empty-icon">🎭</div>
+                        <div class="mask-empty-text">还没有创建面具哦</div>
+                        <div class="mask-empty-hint">点击右上角添加你的第一个人设 ✨</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 面具编辑弹窗 -->
+        <div class="modal-overlay" id="maskModal">
+            <div class="mask-modal-card">
+                <div class="mask-modal-header">
+                    <span class="header-title" id="maskModalTitle">新建面具</span>
+                    <button class="modal-close-btn" onclick="closeMaskModal()">×</button>
+                </div>
+
+                <div class="mask-modal-content">
+                    <div class="mask-field required-field">
+                        <label class="mask-label">
+                            <span class="label-icon"></span>
+                            <span class="label-text">面具名称</span>
+                            <span class="required-star">*</span>
+                        </label>
+                        <input type="text" id="maskName" class="mask-input" placeholder="例如：温柔体贴的我">
+                    </div>
+
+                    <div class="mask-field">
+                        <label class="mask-label">
+                            <span class="label-icon">📝</span>
+                            <span class="label-text">简短描述</span>
+                        </label>
+                        <input type="text" id="maskDesc" class="mask-input" placeholder="一句话描述这个人设...">
+                    </div>
+                    <div class="mask-field required-field">
+                        <label class="mask-label">
+                            <span class="label-icon">✨</span>
+                            <span class="label-text">人设内容</span>
+                            <span class="required-star">*</span>
+                        </label>
+                        <textarea id="maskContent" class="mask-textarea" rows="6"
+                                  placeholder="详细描述这个人设的性格、说话方式、行为特点等..."></textarea>
+                    </div>
+                </div>
+                <div class="mask-modal-footer">
+                    <button class="mask-btn mask-btn-cancel" onclick="closeMaskModal()">取消</button>
+                    <button class="mask-btn mask-btn-delete" id="maskDeleteBtn" style="display: none;"
+                            onclick="deleteMask()">删除
+                    </button>
+                    <button class="mask-btn mask-btn-save" onclick="saveMask()">💾 保存</button>
+                </div>
+            </div>
+        </div>
+        <!-- ========== 面具管理页面 - 结束 ========== -->
+
+        <!-- ========== 新增：文件夹浮层 ========== -->
+        <div class="folder-overlay" id="folderOverlay" onclick="closeFolder()">
+            <div class="folder-modal" onclick="event.stopPropagation()">
+                <div class="folder-header">
+                    <h3 id="folderName">文件夹名称</h3>
+                    <input type="text" id="folderNameInput" style="display: none;">
+                </div>
+                <div class="folder-grid-container" id="folderContentGrid">
+                    <!-- 文件夹内的图标将由JS动态生成到这里 -->
+                </div>
+            </div>
+        </div>
+        <div id="floatingBall">🐾</div>
+        <!-- 白色图标栏目 -->
+        <div class="icon-dock-panel" id="iconDockPanel">
+            <div class="dock-panel-header">
+                <div class="dock-panel-title">我的收藏</div>
+                <button class="dock-panel-close" onclick="closeIconDockPanel()">×</button>
+            </div>
+            <div class="dock-panel-content" id="dockPanelContent">
+                <div class="dock-panel-empty">拖动图标到这里收藏</div>
+            </div>
+        </div>
+        <!-- 悬浮球菜单 -->
+        <div class="floating-ball-menu" id="floatingBallMenu">
+            <div class="fb-menu-item" onclick="toggleIconDockPanel()">
+                <span class="fb-menu-icon">⭐</span>
+                <span class="fb-menu-label">图标收藏栏</span>
+            </div>
+            <div class="fb-menu-item" onclick="openSettings(); closeFloatingBallMenu()">
+                <span class="fb-menu-icon">⚙️</span>
+                <span class="fb-menu-label">设置</span>
+            </div>
+        </div>
+        <!-- ========== 气泡库页面 (最终修正版) ========== -->
+        <div class="bubble-library-page" id="bubbleLibraryPage">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeBubbleLibrary()">←</div>
+                <div class="settings-title">气泡库</div>
+            </div>
+
+            <div class="settings-content">
+                <!-- Tab切换 -->
+                <div class="bubble-tab-container">
+                    <div class="bubble-tab active" data-tab="normal" onclick="switchBubbleTab('normal')">
+                        学习模式
+                    </div>
+                    <div class="bubble-tab" data-tab="sweetheart" onclick="switchBubbleTab('sweetheart')">
+                        密友聊天
+                    </div>
+                </div>
+
+                <!-- 普通聊天气泡编辑 -->
+                <div class="bubble-editor-container" id="normalBubbleEditor">
+                    <div class="section-title">学习模式气泡样式</div>
+
+                    <div class="bubble-code-section">
+                        <div class="bubble-code-header">
+                            <span class="bubble-code-label">📤 发送气泡CSS</span>
+                            <button class="bubble-example-btn" onclick="loadBubbleExample('normal', 'sent')">
+                                示例代码
+                            </button>
+                        </div>
+                        <textarea class="bubble-code-input" id="normalSentBubbleCode"
+                                  placeholder="在此输入发送气泡的CSS代码..." rows="6"></textarea>
+                        <div class="bubble-preview-box">
+                            <div class="preview-label">预览效果：</div>
+                            <div class="preview-chat-container">
+                                <div class="preview-message sent" id="normalSentPreview">
+                                    <div class="preview-bubble">这是发送的消息</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bubble-code-section">
+                        <div class="bubble-code-header">
+                            <span class="bubble-code-label">📥 接收气泡CSS</span>
+                            <button class="bubble-example-btn" onclick="loadBubbleExample('normal', 'received')">
+                                示例代码
+                            </button>
+                        </div>
+                        <textarea class="bubble-code-input" id="normalReceivedBubbleCode"
+                                  placeholder="在此输入接收气泡的CSS代码..." rows="6"></textarea>
+                        <div class="bubble-preview-box">
+                            <div class="preview-label">预览效果：</div>
+                            <div class="preview-chat-container">
+                                <div class="preview-message received" id="normalReceivedPreview">
+                                    <div class="preview-bubble">这是接收的消息</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bubble-action-buttons">
+                        <button class="bubble-btn bubble-btn-save-preset" onclick="saveBubblePreset('normal')">
+                            💾 保存为预设
+                        </button>
+                        <button class="bubble-btn bubble-btn-reset" onclick="resetBubbleStyle('normal')">
+                            🔄 清空输入
+                        </button>
+                    </div>
+
+                    <div class="preset-library-section">
+                        <div class="preset-library-header">
+                            <span class="section-title">我的预设</span>
+                        </div>
+                        <div class="preset-list" id="normalPresetList">
+                            <div class="preset-empty">暂无保存的预设</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 密友聊天气泡编辑 -->
+                <div class="bubble-editor-container" id="sweetheartBubbleEditor" style="display: none;">
+                    <div class="section-title">密友聊天气泡样式</div>
+
+                    <div class="bubble-code-section">
+                        <div class="bubble-code-header">
+                            <span class="bubble-code-label">💕 发送气泡CSS</span>
+                            <button class="bubble-example-btn" onclick="loadBubbleExample('sweetheart', 'sent')">
+                                示例代码
+                            </button>
+                        </div>
+                        <textarea class="bubble-code-input" id="sweetheartSentBubbleCode"
+                                  placeholder="在此输入发送气泡的CSS代码..." rows="6"></textarea>
+                        <div class="bubble-preview-box">
+                            <div class="preview-label">预览效果：</div>
+                            <div class="preview-chat-container">
+                                <div class="preview-message sent" id="sweetheartSentPreview">
+                                    <div class="preview-bubble">这是发送的消息</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bubble-code-section">
+                        <div class="bubble-code-header">
+                            <span class="bubble-code-label">💝 接收气泡CSS</span>
+                            <button class="bubble-example-btn" onclick="loadBubbleExample('sweetheart', 'received')">
+                                示例代码
+                            </button>
+                        </div>
+                        <textarea class="bubble-code-input" id="sweetheartReceivedBubbleCode"
+                                  placeholder="在此输入接收气泡的CSS代码..." rows="6"></textarea>
+                        <div class="bubble-preview-box">
+                            <div class="preview-label">预览效果：</div>
+                            <div class="preview-chat-container">
+                                <div class="preview-message received" id="sweetheartReceivedPreview">
+                                    <div class="preview-bubble">这是接收的消息</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bubble-action-buttons">
+                        <button class="bubble-btn bubble-btn-save-preset" onclick="saveBubblePreset('sweetheart')">
+                            💾 保存为预设
+                        </button>
+                        <button class="bubble-btn bubble-btn-reset" onclick="resetBubbleStyle('sweetheart')">
+                            🔄 清空输入
+                        </button>
+                    </div>
+
+                    <div class="preset-library-section">
+                        <div class="preset-library-header">
+                            <span class="section-title">我的预设</span>
+                        </div>
+                        <div class="preset-list" id="sweetheartPresetList">
+                            <div class="preset-empty">暂无保存的预设</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 使用说明 -->
+                <div class="bubble-help-section">
+                    <div class="section-title">💡 使用提示</div>
+                    <div class="bubble-help-content">
+                        <p>• 输入CSS后，上方会自动预览</p>
+                        <p>• 满意后点击"保存为预设"即可存入下方列表</p>
+                        <p>• 在预设列表中点击"应用"来更换聊天气泡</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 联系人库页面 (最终版) ========== -->
+        <div class="contact-library-page" id="contactLibraryPage">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeContactLibrary()">←</div>
+                <div class="settings-title" id="contactLibraryTitle">联系人库</div>
+                <!-- 🆕 新增：右上角操作按钮 -->
+                <div class="contact-lib-actions">
+                    <!-- 默认显示多选按钮 -->
+                    <div class="multi-select-toggle" id="multiSelectToggle" onclick="enterMultiSelectMode()">☑️</div>
+                    <!-- 多选模式下的操作按钮（默认隐藏）-->
+                    <div class="multi-select-toolbar" id="multiSelectToolbar" style="display: none;">
+                        <div class="toolbar-btn delete-btn" onclick="batchDeleteContacts()">删除</div>
+                        <div class="toolbar-btn clone-btn" onclick="batchCloneContacts()">克隆</div>
+                        <div class="toolbar-btn done-btn" onclick="exitMultiSelectMode()">完成</div>
+                    </div>
+                </div>
+            </div>
+            <div class="contact-library-content">
+                <div class="contact-library-search-wrapper">
+                    <input type="text" class="contact-library-search" id="contactLibrarySearch" placeholder="搜索..."
+                           oninput="filterContactLibrary()">
+                </div>
+                <div id="contactLibraryList">
+                    <!-- 联系人列表将由JS动态生成 -->
+                </div>
+            </div>
+        </div>
+        <!-- ========== 记忆存储中心页面 ========== -->
+        <div class="memory-center-page" id="memoryCenterPage">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeMemoryCenter()">←</div>
+                <div class="settings-title">记忆存储中心</div>
+            </div>
+            <div class="settings-content">
+                <!-- Tab切换 -->
+                <div class="memory-tab-container">
+                    <div class="memory-tab active" data-tab="knowledge" onclick="switchMemoryTab('knowledge')">
+                        📚 知识
+                    </div>
+                    <!-- 预留其他tab -->
+                    <div class="memory-tab" data-tab="other" onclick="switchMemoryTab('other')">
+                        💡 其他
+                    </div>
+                </div>
+                <!-- 知识清单列表 -->
+                <div class="memory-content-area" id="knowledgeMemoryArea">
+                    <div class="section-title">知识点清单</div>
+                    <div id="knowledgeList">
+                        <div class="memory-empty">
+                            <div class="memory-empty-icon">📚</div>
+                            <div class="memory-empty-text">还没有保存的知识点</div>
+                            <div class="memory-empty-hint">在聊天中点击"总结"按钮来生成知识清单</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 其他内容区域（预留） -->
+                <div class="memory-content-area" id="otherMemoryArea" style="display: none;">
+                    <div class="section-title">其他记忆</div>
+                    <p style="text-align: center; color: #999; padding: 40px 20px;">敬请期待...</p>
+                </div>
+            </div>
+        </div>
+        <!-- ========== 测试配置弹窗 ========== -->
+        <div class="modal-overlay" id="testConfigModal">
+            <div class="test-config-card">
+                <div class="test-config-header">
+                    <span class="header-title">生成测试</span>
+                    <button class="modal-close-btn" onclick="closeTestConfig()">×</button>
+                </div>
+                <div class="test-config-content">
+                    <div class="test-field">
+                        <label class="test-label">选择知识清单</label>
+                        <div class="knowledge-selector" id="knowledgeSelector">
+                            <!-- 动态生成复选框 -->
+                        </div>
+                    </div>
+                    <div class="test-field">
+                        <label class="test-label">题目数量</label>
+                        <div class="number-stepper">
+                            <button class="stepper-btn" onclick="adjustQuestionCount(-1)">-</button>
+                            <input type="number" class="stepper-input" id="questionCountInput" value="5" min="1"
+                                   max="20">
+                            <button class="stepper-btn" onclick="adjustQuestionCount(1)">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="test-config-footer">
+                    <button class="test-btn test-btn-cancel" onclick="closeTestConfig()">取消</button>
+                    <button class="test-btn test-btn-generate" onclick="startGenerateTest()">生成测试</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 测试确认弹窗 ========== -->
+        <div class="modal-overlay" id="testReadyModal">
+            <div class="test-ready-card">
+                <div class="test-ready-icon">✅</div>
+                <h3>测试已生成</h3>
+                <p>是否现在开始测试？</p>
+                <div class="test-ready-actions">
+                    <button class="test-btn test-btn-cancel" onclick="closeTestReady()">稍后</button>
+                    <button class="test-btn test-btn-start" onclick="startTest()">开始测试</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 测试页面 ========== -->
+        <div class="test-page" id="testPage">
+            <div class="test-header">
+                <div class="back-btn" onclick="closeTest()">←</div>
+                <div class="test-title">知识测试</div>
+                <div class="test-timer" id="testTimer">00:00</div>
+            </div>
+            <div class="test-content" id="testContent">
+                <!-- 测试题目将在这里动态生成 -->
+            </div>
+            <div class="test-footer">
+                <button class="test-submit-btn" onclick="submitTest()">提交答案</button>
+            </div>
+        </div>
+
+        <!-- ========== 测试结果弹窗 ========== -->
+        <div class="modal-overlay" id="testResultModal">
+            <div class="test-result-card">
+                <div class="test-result-header">
+                    <h3>测试结果</h3>
+                    <button class="modal-close-btn" onclick="closeTestResult()">×</button>
+                </div>
+                <div class="test-result-content">
+                    <div class="score-display">
+                        <div class="score-number" id="scoreNumber">0</div>
+                        <div class="score-label">分</div>
+                    </div>
+                    <div class="score-details" id="scoreDetails">
+                        <!-- 详细结果 -->
+                    </div>
+                </div>
+                <div class="test-result-footer">
+                    <button class="test-btn test-btn-close" onclick="closeTestResult()">关闭</button>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="contacts-page" id="contactsPage">
+            <div class="contacts-header">
+                <div class="back-btn" onclick="closeContacts()">←</div>
+                <input type="text" class="contacts-search" id="contactsSearch" placeholder="搜索联系人..."
+                       oninput="filterContacts()">
+                <div class="add-contact-btn" onclick="toggleContactMenu(event)">+</div>
+
+                <div class="contact-menu" id="contactMenu">
+                    <div class="contact-menu-item" onclick="createNewContact()">新建联系人</div>
+                    <div class="contact-menu-item" onclick="selectExistingContact()">选择已有联系人</div>
+                </div>
+            </div>
+            <div class="contacts-list" id="contactsList"></div>
+        </div>
+        <!-- ========== 统一通用角色卡 (整合了所有类型) ========== -->
+        <div class="modal-overlay" id="characterCardModal">
+            <div class="character-card-modal">
+                <div class="character-card-content">
+                    <!-- ========= 对方（联系人）信息区 ========= -->
+                    <div class="top-info-section">
+                        <!-- 左侧：头像 -->
+                        <div class="character-avatar" onclick="openAvatarActions('contact')">
+                            <img id="avatar-preview" src="" alt="角色头像">
+                            <div class="avatar-overlay">📷</div>
+                        </div>
+
+                        <!-- 右侧：核心信息 -->
+                        <div class="core-details">
+                            <input type="text" id="char-name" placeholder="角色姓名">
+                            <div class="character-gender-selection">
+                                <label><input type="radio" name="char-gender" value="male" checked> 男</label>
+                                <label><input type="radio" name="char-gender" value="female"> 女</label>
+                                <label><input type="radio" name="char-gender" value="other"> 其他</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ID 显示 -->
+                    <div class="character-id-section">
+                        <div class="id-label">
+                            <span class="id-icon">🔖</span>
+                            <span class="id-text">实例ID</span>
+                        </div>
+                        <div class="id-value" id="char-instance-id">-</div>
+                    </div>
+
+                    <!-- 基础设定 -->
+                    <div class="persona-section">
+                        <textarea id="char-persona" placeholder="在此处填写角色的背景故事/基础设定..."></textarea>
+                    </div>
+
+                    <!-- ✨ 新增：详细设定折叠区 (整合密友专属字段) -->
+                    <div class="character-worldbook-section">
+                        <div class="char-wb-toggle" onclick="toggleCharExtended()">
+                            <div class="char-wb-toggle-label">✨ 详细设定 (性格/经历等)</div>
+                            <span class="char-wb-toggle-arrow" id="char-extended-arrow">▼</span>
+                        </div>
+                        <div class="char-wb-list" id="charExtendedFields" style="display: none; padding: 10px;">
+                            <input type="text" id="char-personality" class="form-input"
+                                   placeholder="性格 (如: 温柔、活泼)" style="margin-bottom:8px;">
+                            <input type="text" id="char-occupation" class="form-input" placeholder="职业"
+                                   style="margin-bottom:8px;">
+                            <input type="text" id="char-catchphrase" class="form-input" placeholder="口头禅"
+                                   style="margin-bottom:8px;">
+                            <input type="text" id="char-relationship" class="form-input" placeholder="与我的关系"
+                                   style="margin-bottom:8px;">
+                            <textarea id="char-history" class="form-input" placeholder="过去的经历..." rows="3"
+                                      style="min-height: 60px;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 语音设置 -->
+                    <div class="voice-setting-section">
+                        <label class="voice-setting-label">🔊 语音ID</label>
+                        <input type="text" id="char-voice-id" class="voice-setting-input"
+                               placeholder="例如: male-qn-qingse">
+                    </div>
+
+                    <!-- 绑定世界书 -->
+                    <div class="character-worldbook-section">
+                        <div class="char-wb-toggle" onclick="toggleCharacterWorldbooks()">
+                            <div class="char-wb-toggle-label">📚 绑定的世界书</div>
+                            <span class="char-wb-toggle-arrow" id="char-wb-arrow">▼</span>
+                        </div>
+                        <div class="char-wb-list" id="charWorldbooksList" style="display: none;">
+                            <!-- JS动态生成 -->
+                        </div>
+                    </div>
+
+
+                    <!-- 绑定面具 -->
+                    <div class="character-worldbook-section">
+                        <div class="char-wb-toggle" onclick="toggleCharacterMasks()">
+                            <div class="char-wb-toggle-label">🎭 绑定的面具</div>
+                            <span class="char-wb-toggle-arrow" id="char-mask-arrow">▼</span>
+                        </div>
+                        <div class="char-wb-list" id="charMasksList" style="display: none;">
+                            <!-- JS动态生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 分割线 -->
+                    <div class="card-divider">
+                        <span class="divider-text">我的信息 (仅本次有效)</span>
+                    </div>
+
+                    <!-- ========= 我（用户）信息区 ========= -->
+                    <div class="top-info-section">
+                        <div class="character-avatar" onclick="openAvatarActions('user')">
+                            <img id="user-avatar-preview" src="" alt="我的头像">
+                            <div class="avatar-overlay">👤</div>
+                        </div>
+                        <div class="core-details">
+                            <input type="text" id="user-name" placeholder="我的昵称">
+                        </div>
+                    </div>
+                    <div class="persona-section">
+                        <textarea id="user-persona"
+                                  placeholder="在此处填写“我的设定”，将作为系统提示词..."></textarea>
+                    </div>
+
+                    <!-- 隐藏的文件上传输入框 -->
+                    <input type="file" id="avatar-input" accept="image/*" style="display: none;">
+                </div>
+
+                <div class="character-card-footer">
+                    <button class="character-card-btn cancel" onclick="closeCharacterCardPage()">取消</button>
+                    <button class="character-card-btn save" onclick="saveAllCharacterData()">保存</button>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="chat-page" id="chatPage">
+            <div class="chat-header">
+                <div class="back-btn" onclick="closeChat()">←</div>
+                <h2 class="chat-title" id="chatContactName"></h2>
+
+                <!-- 默认操作按钮 -->
+                <div class="header-actions" id="normalHeaderActions">
+                    <div class="edit-contact-btn" onclick="editCurrentContact()">编辑</div>
+                    <div class="chat-settings-btn" onclick="openChatSettings()">⚙️</div>
+                </div>
+                <!-- 多选模式工具栏（默认隐藏）-->
+                <div class="multi-select-toolbar" id="normalMultiSelectToolbar" style="display: none;">
+                    <div class="toolbar-btn delete-btn" onclick="batchDeleteNormalMessages()">删除</div>
+                    <div class="toolbar-btn done-btn" onclick="exitNormalMultiSelectMode()">完成</div>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+            </div>
+            <div class="chat-input-area">
+                <!-- 引用预览框现在是唯一的顶部元素 -->
+                <div class="quote-preview" id="quotePreview">
+                    <div class="quote-content">
+                        <strong class="quote-sender" id="quotePreviewSender"></strong>
+                        <span class="quote-text" id="quotePreviewText"></span>
+                    </div>
+                    <button class="quote-close-btn" onclick="cancelQuote()">&times;</button>
+                </div>
+                <!-- 新增一个包裹容器，用于水平排列输入框和按钮 -->
+                <div class="chat-input-main-row">
+                    <button class="chat-action-btn" id="showAttachmentMenuBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"></path>
+                        </svg>
+                    </button>
+                    <!-- 附件菜单和隐藏的input保持不变 -->
+                    <div class="attachment-menu" id="attachmentMenu">
+                        <div class="attachment-item" id="uploadFileBtn">
+                            <div class="attachment-icon">📁</div>
+                            <div class="attachment-label">文件</div>
+                        </div>
+                        <div class="attachment-item" id="uploadImageBtn">
+                            <div class="attachment-icon">🖼️</div>
+                            <div class="attachment-label">图片</div>
+                        </div>
+                        <!-- ✅ 新增：总结知识点 -->
+                        <div class="attachment-item" id="summarizeKnowledgeBtn">
+                            <div class="attachment-icon">📝</div>
+                            <div class="attachment-label">总结</div>
+                        </div>
+                        <!-- 新增：测试功能 -->
+                        <div class="attachment-item" id="generateTestBtn" style="opacity: 0.5; pointer-events: none;">
+                            <div class="attachment-icon">📋</div>
+                            <div class="attachment-label">测试</div>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" style="display: none;">
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                    <!-- 输入框 -->
+                    <input type="text" id="chatInput" placeholder="输入消息...">
+
+                    <!-- 发送键 -->
+                    <button class="chat-action-btn primary" id="sendMsgBtn" onclick="addMessageToList()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685Z"></path>
+                        </svg>
+                    </button>
+                    <!-- 回复键 -->
+                    <button class="chat-action-btn" id="getReplyBtn" onclick="getAiReply()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z"></path>
+                        </svg>
+                    </button>
+
+                    <!-- 旧的添加按钮（已隐藏） -->
+                    <button class="chat-action-btn" id="addMsgBtn" onclick="addMessageToList()" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <!-- 普通聊天的消息操作菜单 -->
+            <div class="message-action-sheet" id="messageActionSheet">
+                <div class="action-sheet-backdrop" onclick="hideMessageActionSheet()"></div>
+                <div class="action-sheet-options">
+                    <div class="action-option" id="copyMessageBtn">复制</div>
+                    <div class="action-option" id="regenerateMessageBtn">重新生成</div>
+                    <div class="action-option" id="quoteMessageBtn">引用</div>
+                    <div class="action-option" id="readAloudNormalBtn">朗读</div>
+                    <div class="action-option" id="multiSelectNormalBtn">多选</div>
+                    <div class="action-option destructive" id="deleteMessageBtn">删除</div>
+                </div>
+                <div class="action-sheet-options">
+                    <div class="action-option cancel" onclick="hideMessageActionSheet()">取消</div>
+                </div>
+            </div>
+            <div class="chat-settings-page" id="chatSettingsPage">
+                <!-- 1. 顶部导航栏 -->
+                <div class="settings-header">
+                    <div class="back-btn" onclick="closeChatSettings()">←</div>
+                    <div class="settings-title">聊天设置</div>
+                </div>
+                <!-- 2. 页面主要内容 -->
+                <div class="settings-content">
+                    <div class="settings-section">
+                        <div class="section-title">当前对话</div>
+                        <!-- 3. 功能选项：清空记录 -->
+                        <div class="settings-item" onclick="clearCurrentChatHistory()">
+                            <div class="settings-icon"
+                                 style="background: linear-gradient(135deg, #ff758c, #ff7eb3);">
+                                🗑️
+                            </div>
+                            <div class="settings-info">
+                                <div class="settings-label">清空聊天记录</div>
+                                <div class="settings-desc">删除与当前联系人的所有消息</div>
+                            </div>
+                            <div class="settings-arrow">›</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-info">
+                                <div class="settings-label">代码框滚动条</div>
+                                <div class="settings-desc">开启后，过长的代码将出现水平滚动条</div>
+                            </div>
+                            <div class="settings-action">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="codeScrollToggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-section">
+                            <div class="section-title">外观</div>
+                            <div class="settings-section" style="padding: 0 20px; margin-bottom: 20px;">
+                                <div class="form-group" style="padding: 10px;">
+                                    <label class="form-label" style="margin-bottom: 10px;">消息样式</label>
+                                    <div class="segmented-control" id="messageStyleSelector">
+                                        <div class="segmented-option active" data-style="bubble">气泡</div>
+                                        <div class="segmented-option" data-style="simple">简洁</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 更换聊天背景的设置项 -->
+                            <div style="padding: 0 12px;">
+                                <div class="app-preview-item">
+                                    <div class="preview-header">
+                                        <div class="preview-icon">🖼️</div>
+                                        <div class="preview-name">自定义聊天背景</div>
+                                    </div>
+                                    <div class="upload-section">
+                                        <!-- 上传文件按钮 -->
+                                        <label class="upload-btn">
+                                            📁 上传文件
+                                            <input type="file" class="file-input" accept="image/*"
+                                                   onchange="handleChatBgUpload(event)">
+                                        </label>
+                                        <!-- URL输入按钮 -->
+                                        <div class="url-input-btn" onclick="toggleChatBgUrlInput()">🔗 URL填写</div>
+                                    </div>
+                                    <!-- URL输入框 (默认隐藏) -->
+                                    <div class="url-input-box" id="chat-bg-url-box">
+                                        <input type="text" class="url-input-field" id="chat-bg-url-input"
+                                               placeholder="输入图片URL">
+                                        <button class="confirm-btn" onclick="applyChatBgFromUrl()">确认</button>
+                                    </div>
+                                    <!-- 状态消息提示 -->
+                                    <div class="status-message" id="chat-bg-status"></div>
+                                </div>
+                            </div>
+                            <!-- 恢复默认背景的设置项 -->
+                            <div class="settings-item" onclick="applyChatBackground('')">
+                                <div class="settings-icon" style="background: #e9ecef;">
+                                    ✨
+                                </div>
+                                <div class="settings-info">
+                                    <div class="settings-label">恢复默认背景</div>
+                                    <div class="settings-desc">移除自定义聊天背景图</div>
+                                </div>
+                                <div class="settings-arrow">›</div>
+                            </div>
+                        </div>
+                        <div class="settings-section">
+                            <div class="section-title">AI 设置</div>
+                            <div class="settings-item">
+                                <div class="settings-icon"
+                                     style="background: linear-gradient(135deg, #a1c4fd, #c2e9fb);">
+                                    🧠
+                                </div>
+                                <div class="settings-info">
+                                    <div class="settings-label">AI记忆轮数</div>
+                                    <div class="settings-desc">调整AI能记住的对话轮数(默认10轮)</div>
+                                </div>
+                                <div class="settings-action">
+                                    <div class="number-stepper">
+                                        <button class="stepper-btn" id="decreaseNormalMemoryRounds">-</button>
+                                        <input type="number" class="stepper-input" id="normalMemoryRoundsInput"
+                                               value="10" min="1" max="250">
+                                        <button class="stepper-btn" id="increaseNormalMemoryRounds">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 未来可以在这里添加更多设置项 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ========== 新增：密友专用聊天页面 ========== -->
+        <div class="sweetheart-chat-page" id="sweetheartChatPage">
+            <div class="sweetheart-chat-header">
+                <div class="back-btn" onclick="closeSweetheartChat()">←</div>
+                <h2 class="sweetheart-chat-title" id="sweetheartChatContactName"></h2>
+                <!-- 🆕 新增：模式切换按钮 -->
+                <div class="mode-toggle-btn" id="chatModeToggle" onclick="toggleChatMode()" title="线上模式">
+                    <img src="https://static.eeo.cn/upload/file/20251102/1762092130593288.png" alt="切换模式">
+                </div>
+                <!-- 默认操作按钮 -->
+                <div class="header-actions" id="sweetheartHeaderActions">
+                    <div class="status-btn" onclick="openStatusPopup()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm0 3c-3.39 0-8 1.63-8 4v2h16v-2c0-2.37-4.61-4-8-4Zm6 4H6v-.57c.1-.6 2.4-1.43 6-1.43s5.9.83 6 1.43V17Z"></path>
+                        </svg>
+                    </div>
+                    <div class="edit-contact-btn" onclick="editCurrentSweetheartContact()">编辑</div>
+                    <div class="chat-settings-btn" onclick="openSweetheartChatSettings()">⚙️</div>
+                </div>
+                <!-- 多选模式工具栏（默认隐藏）-->
+                <div class="multi-select-toolbar" id="sweetheartMultiSelectToolbar" style="display: none;">
+                    <div class="toolbar-btn delete-btn" onclick="batchDeleteSweetheartMessages()">删除</div>
+                    <div class="toolbar-btn done-btn" onclick="exitSweetheartMultiSelectMode()">完成</div>
+                </div>
+            </div>
+            <!-- ✨ 新增：轻量级记忆HUD (悬浮状态表) -->
+            <div class="memory-hud" id="memoryHUD">
+                <div class="memory-hud-header">
+                    <span class="hud-title">📝 记忆痕迹</span>
+                    <span class="hud-edit-btn" onclick="openStatusEditor()">✏️</span> <!-- 仍然保留编辑入口 -->
+                </div>
+                <div class="memory-table-container">
+                    <table class="memory-table" id="memoryTableContent">
+                        <thead>
+                        <tr>
+                            <th style="width: 25%">时间</th>
+                            <th style="width: 30%">地点</th>
+                            <th style="width: 45%">状态/行为</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- JS将动态生成内容 -->
+                        <tr>
+                            <td colspan="3">暂无记忆...</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- ========== 新增：极简记忆编辑弹窗 (只编辑HUD显示的内容) ========== -->
+            <div class="modal-overlay" id="simpleStatusEditModal">
+                <div class="simple-edit-card">
+                    <div class="simple-edit-header">
+                        <h3>📝 修改当前状态</h3>
+                        <span class="close-btn" onclick="closeSimpleStatusEdit()">×</span>
+                    </div>
+                    <div class="simple-edit-body">
+                        <div class="simple-input-group">
+                            <label>📍 地点</label>
+                            <input type="text" id="simpleEditLocation" placeholder="TA现在在哪里？">
+                        </div>
+
+                        <div class="simple-input-group">
+                            <label>🏃‍♀️ 状态 / 行为</label>
+                            <textarea id="simpleEditAction" rows="3" placeholder="TA正在做什么？"></textarea>
+                        </div>
+                    </div>
+                    <div class="simple-edit-footer">
+                        <button class="simple-btn cancel" onclick="closeSimpleStatusEdit()">取消</button>
+                        <button class="simple-btn save" onclick="saveSimpleStatus()">保存记忆</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 消息区域 -->
+            <div class="sweetheart-chat-messages" id="sweetheartChatMessages">
+                <!-- 消息将动态生成到这里 -->
+            </div>
+            <!-- 输入区域 -->
+            <div class="sweetheart-chat-input-area">
+                <!-- 引用预览 -->
+                <div class="quote-preview" id="sweetheartQuotePreview">
+                    <div class="quote-content">
+                        <strong class="quote-sender" id="sweetheartQuotePreviewSender"></strong>
+                        <span class="quote-text" id="sweetheartQuotePreviewText"></span>
+                    </div>
+                    <button class="quote-close-btn" onclick="cancelSweetheartQuote()">&times;</button>
+                </div>
+                <!-- 输入主行 -->
+                <div class="chat-input-main-row">
+                    <!-- 附件按钮 -->
+                    <button class="chat-action-btn" id="sweetheartShowAttachmentMenuBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"></path>
+                        </svg>
+                    </button>
+                    <!-- 附件菜单 -->
+                    <div class="attachment-menu" id="sweetheartAttachmentMenu">
+                        <div class="attachment-item" id="sweetheartUploadFileBtn">
+                            <div class="attachment-icon">📁</div>
+                            <div class="attachment-label">文件</div>
+                        </div>
+                        <div class="attachment-item" id="sweetheartUploadImageBtn">
+                            <div class="attachment-icon">🖼️</div>
+                            <div class="attachment-label">图片</div>
+                        </div>
+                        <div class="attachment-item" id="openWorldMapBtn" onclick="openWorldMapPopup()">
+                            <div class="attachment-icon">🗺️</div>
+                            <div class="attachment-label">地图</div>
+                        </div>
+                        <!-- 在这里添加新的红包功能 -->
+                        <div class="attachment-item" id="sweetheartSendRedPacketBtn">
+                            <div class="attachment-icon">🧧</div>
+                            <div class="attachment-label">红包</div>
+                        </div>
+                    </div>
+                    <input type="file" id="sweetheartFileInput" style="display: none;">
+                    <input type="file" id="sweetheartImageInput" accept="image/*" style="display: none;">
+                    <!-- 输入框 -->
+                    <input type="text" id="sweetheartChatInput" placeholder="给TA发送甜蜜消息...💖">
+                    <!-- 发送按钮（爱心图案）-->
+                    <button class="chat-action-btn primary" id="sweetheartSendMsgBtn"
+                            onclick="addSweetheartMessageToList()">
+                        <!-- 将SVG替换为IMG标签 -->
+                        <img src="https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1760818188304_qdqqd_dzl9rm.png"
+                             alt="发送">
+                    </button>
+                    <!-- 接收按钮（星星图案）-->
+                    <button class="chat-action-btn" id="sweetheartGetReplyBtn" onclick="getSweetheartAiReply()">
+                        <!-- 将SVG替换为IMG标签 -->
+                        <img src="https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1760818251150_qdqqd_7ycw7c.png"
+                             alt="回复">
+                    </button>
+                </div>
+            </div>
+            <!-- 密友聊天设置页面 -->
+
+            <!-- 密友消息操作菜单 -->
+            <div class="message-action-sheet" id="sweetheartMessageActionSheet">
+                <div class="action-sheet-backdrop" onclick="hideSweetheartMessageActionSheet()"></div>
+                <div class="action-sheet-options">
+                    <div class="action-option" id="sweetheartCopyMessageBtn">复制</div>
+                    <div class="action-option" id="sweetheartRegenerateMessageBtn">重新生成</div>
+                    <div class="action-option" id="sweetheartQuoteMessageBtn">引用</div>
+                    <div class="action-option" id="readAloudSweetheartBtn">朗读</div>
+                    <div class="action-option" id="multiSelectSweetheartBtn">多选</div>
+                    <div class="action-option destructive" id="sweetheartDeleteMessageBtn">删除</div>
+                </div>
+                <div class="action-sheet-options">
+                    <div class="action-option cancel" onclick="hideSweetheartMessageActionSheet()">取消</div>
+                </div>
+            </div>
+            <div class="chat-settings-page" id="sweetheartChatSettingsPage">
+                <div class="settings-header">
+                    <div class="back-btn" onclick="closeSweetheartChatSettings()">←</div>
+                    <div class="settings-title">密友聊天设置</div>
+                </div>
+                <div class="settings-content">
+                    <!-- 新增：单信息/多信息模式选择 -->
+                    <div class="settings-section">
+                        <div class="section-title">回复模式</div>
+                        <div class="settings-item">
+                            <div class="settings-info">
+                                <div class="settings-label">回复模式</div>
+                                <div class="settings-desc">选择一条消息自动回复，或手动触发更多回复</div>
+                            </div>
+                            <div class="settings-action">
+                                <div class="segmented-control" id="sweetheartReplyModeSelector">
+                                    <div class="segmented-option" data-mode="single">单信息</div>
+                                    <div class="segmented-option" data-mode="multi">多信息</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="section-title">当前对话</div>
+                        <div class="settings-item" onclick="clearCurrentSweetheartChatHistory()">
+                            <div class="settings-icon" style="background: linear-gradient(135deg, #ff758c, #ff7eb3);">
+                                🗑️
+                            </div>
+                            <div class="settings-info">
+                                <div class="settings-label">清空聊天记录</div>
+                                <div class="settings-desc">删除与当前密友的所有消息</div>
+                            </div>
+                            <div class="settings-arrow">›</div>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="section-title">AI 设置</div>
+                        <div class="settings-item">
+                            <div class="settings-icon" style="background: linear-gradient(135deg, #a1c4fd, #c2e9fb);">
+                                🧠
+                            </div>
+                            <div class="settings-info">
+                                <div class="settings-label">AI记忆轮数</div>
+                                <div class="settings-desc">调整AI能记住的对话轮数(默认10轮)</div>
+                            </div>
+                            <div class="settings-action">
+                                <div class="number-stepper">
+                                    <button class="stepper-btn" id="decreaseMemoryRounds">-</button>
+                                    <input type="number" class="stepper-input" id="memoryRoundsInput" value="10" min="1"
+                                           max="250">
+                                    <button class="stepper-btn" id="increaseMemoryRounds">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="section-title">🔧 调试工具</div>
+                        <div class="settings-item" onclick="testStatusUpdate()">
+                            <div class="settings-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                                🧪
+                            </div>
+                            <div class="settings-info">
+                                <div class="settings-label">测试状态更新</div>
+                                <div class="settings-desc">手动测试状态栏功能是否正常</div>
+                            </div>
+                            <div class="settings-arrow">›</div>
+                        </div>
+                    </div>
+                    <!-- ▲▲▲ 新增代码结束 ▲▲▲ -->
+                    <div class="settings-section">
+                        <div class="section-title">外观</div>
+                        <!-- 更换聊天背景的设置项 -->
+                        <div style="padding: 0 12px; margin-bottom: 20px;">
+                            <div class="app-preview-item">
+                                <div class="preview-header">
+                                    <div class="preview-icon">🖼️</div>
+                                    <div class="preview-name">自定义聊天背景</div>
+                                </div>
+                                <div class="upload-section">
+                                    <!-- 上传文件按钮 -->
+                                    <label class="upload-btn">
+                                        📁 上传文件
+                                        <input type="file" class="file-input" accept="image/*"
+                                               onchange="handleSweetheartChatBgUpload(event)">
+                                    </label>
+                                    <!-- URL输入按钮 -->
+                                    <div class="url-input-btn" onclick="toggleSweetheartChatBgUrlInput()">🔗 URL填写
+                                    </div>
+                                </div>
+                                <!-- URL输入框 (默认隐藏) -->
+                                <div class="url-input-box" id="sweetheart-chat-bg-url-box">
+                                    <input type="text" class="url-input-field" id="sweetheart-chat-bg-url-input"
+                                           placeholder="输入图片URL">
+                                    <button class="confirm-btn" onclick="applySweetheartChatBgFromUrl()">确认</button>
+                                </div>
+                                <!-- 状态消息提示 -->
+                                <div class="status-message" id="sweetheart-chat-bg-status"></div>
+                            </div>
+                        </div>
+                        <!-- 恢复默认背景的设置项 -->
+                        <div class="settings-item" onclick="applySweetheartChatBackground('')">
+                            <div class="settings-icon" style="background: #e9ecef;">
+                                ✨
+                            </div>
+                            <div class="settings-info">
+                                <div class="settings-label">恢复默认背景</div>
+                                <div class="settings-desc">移除自定义聊天背景图</div>
+                            </div>
+                            <div class="settings-arrow">›</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-info">
+                                <div class="settings-label">显示头像</div>
+                                <div class="settings-desc">在聊天中显示联系人和你的头像</div>
+                            </div>
+                            <div class="settings-action">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="showAvatarsToggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-overlay" id="worldMapPopup">
+                <div class="world-map-backdrop" onclick="closeWorldMapPopup()"></div>
+                <div class="world-map-modal">
+                    <div class="world-map-header">
+                        <h3 class="world-map-title">世界地图</h3>
+                        <div class="world-map-close" onclick="closeWorldMapPopup()">×</div>
+                    </div>
+                    <div class="world-map-content">
+                        <div class="map-popup-container" id="mapPopupContainer">
+                            <img id="mapPopupImage" src="" alt="World Map">
+                            <!-- 地点大头针将由JS动态生成到这里 -->
+                        </div>
+                        <div class="map-popup-hint">点击地点，开启一段新故事...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="sweetheart-list-page" id="sweetheartListPage">
+            <div class="sweetheart-list-header">
+                <div class="back-btn" onclick="closeSweetheartList(true)">←</div>
+                <div class="sweetheart-list-title">密友列表</div>
+                <!-- 1. 修改按钮的点击事件 -->
+                <div class="add-contact-btn" onclick="toggleSweetheartContactMenu(event)">+</div>
+
+                <!-- 2. 新增下拉菜单的HTML结构 -->
+                <div class="contact-menu" id="sweetheartContactMenu">
+                    <div class="contact-menu-item" onclick="addNewSweetheartContact()">添加密友</div>
+                    <div class="contact-menu-item" onclick="selectExistingContactForSweetheart()">选择已有联系人
+                    </div>
+                </div>
+                <!-- ▼▼▼ 在这里添加设置按钮 ▼▼▼ -->
+                <div class="settings-btn" onclick="openSweetheartSettings()">⚙️</div>
+            </div>
+            <!-- ========== 密友设置界面 ========== -->
+            <div class="sweetheart-settings-page" id="sweetheartSettingsPage">
+                <div class="settings-header">
+                    <div class="back-btn" onclick="closeSweetheartSettings()">←</div>
+                    <div class="settings-title">密友设置</div>
+                </div>
+
+                <div class="settings-content">
+                    <div class="settings-section">
+                        <div class="section-title">世界设置</div>
+                        <!-- 地图编辑选项 -->
+                        <div class="settings-item" onclick="openMapEditor()">
+                            <div class="settings-icon"
+                                 style="background: linear-gradient(135deg, #4FC3F7, #29B6F6);">
+                                🗺️
+                            </div>
+                            <div class="settings-info">
+                                <div class="settings-label">地图编辑</div>
+                                <div class="settings-desc">编辑世界地图和地点</div>
+                            </div>
+                            <div class="settings-arrow">›</div>
+                        </div>
+                        <!-- 设定编辑选项 -->
+                        <div class="settings-item" onclick="openWorldSettings()">
+                            <div class="settings-icon"
+                                 style="background: linear-gradient(135deg, #AB47BC, #8E24AA);">
+                                ✏️
+                            </div>
+                            <div class="settings-info">
+                                <div class="settings-label">设定编辑</div>
+                                <div class="settings-desc">编辑世界基础设定</div>
+                            </div>
+                            <div class="settings-arrow">›</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ========== 地图编辑页面 ========== -->
+            <div class="map-editor-page" id="mapEditorPage">
+                <div class="map-editor-header">
+                    <div class="back-btn" onclick="closeMapEditor()">←</div>
+                    <div class="map-editor-title">地图编辑</div>
+                    <div class="map-save-btn" onclick="saveMapData()">保存</div>
+                </div>
+                <div class="map-editor-content">
+                    <!-- 地图容器 -->
+                    <div class="map-container" id="mapContainer" onclick="addMapPin(event)">
+                        <img id="worldMapImage" src="" alt="World Map">
+                        <!-- 大头针将动态添加到这里 -->
+                    </div>
+                    <!-- 提示信息 -->
+                    <div class="map-hint">点击地图添加地点，点击大头针编辑地点信息</div>
+                </div>
+            </div>
+            <!-- ========== 地点编辑弹窗 ========== -->
+            <div class="modal-overlay" id="locationModal">
+                <div class="location-modal-card">
+                    <div class="location-modal-header">
+                        <span class="header-title">编辑地点</span>
+                        <button class="modal-close-btn" onclick="closeLocationModal()">×</button>
+                    </div>
+                    <div class="location-modal-content">
+                        <div class="location-field">
+                            <label class="location-label">
+                                <span class="label-icon">📍</span>
+                                <span class="label-text">地点名称</span>
+                            </label>
+                            <input type="text" id="locationName" class="location-input"
+                                   placeholder="输入地点名称...">
+                        </div>
+                        <div class="location-field">
+                            <label class="location-label">
+                                <span class="label-icon">📝</span>
+                                <span class="label-text">地点描述</span>
+                            </label>
+                            <textarea id="locationDesc" class="location-textarea" placeholder="描述这个地点..."
+                                      rows="4"></textarea>
+                        </div>
+                        <div class="location-field">
+                            <label class="location-label">
+                                <span class="label-icon">🏷️</span>
+                                <span class="label-text">地点类型</span>
+                            </label>
+                            <select id="locationType" class="location-select">
+                                <option value="city">城市</option>
+                                <option value="village">村庄</option>
+                                <option value="dungeon">地下城</option>
+                                <option value="landmark">地标</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="location-modal-footer">
+                        <button class="location-btn btn-delete" onclick="deleteLocation()">删除</button>
+                        <button class="location-btn btn-save" onclick="saveLocation()">保存</button>
+                    </div>
+                </div>
+            </div>
+            <div class="world-settings-page" id="worldSettingsPage">
+                <div class="world-settings-header">
+                    <div class="back-btn" onclick="closeWorldSettings()">←</div>
+                    <div class="world-settings-title">编辑世界设定</div>
+                    <div class="world-settings-save-btn" onclick="saveWorldSettings()">保存</div>
+                </div>
+                <div class="world-settings-content">
+                    <!-- 世界基本信息 -->
+                    <div class="settings-section">
+                        <div class="section-title">基本信息</div>
+
+                        <div class="world-settings-field">
+                            <label class="field-label">
+                                <span class="label-icon">🌍</span>
+                                <span class="label-text">世界名称</span>
+                            </label>
+                            <input type="text" id="worldSettingsName" class="field-input"
+                                   placeholder="输入世界名称">
+                        </div>
+                        <div class="world-settings-field">
+                            <label class="field-label">
+                                <span class="label-icon">📝</span>
+                                <span class="label-text">世界描述</span>
+                            </label>
+                            <textarea id="worldSettingsDesc" class="field-textarea"
+                                      placeholder="描述这个世界的特点..."
+                                      rows="4"></textarea>
+                        </div>
+                        <div class="world-settings-field">
+                            <label class="field-label">
+                                <span class="label-icon">🎭</span>
+                                <span class="label-text">世界风格</span>
+                            </label>
+                            <select id="worldSettingsStyle" class="field-select">
+                                <option value="fantasy">奇幻世界</option>
+                                <option value="modern">现代都市</option>
+                                <option value="scifi">科幻未来</option>
+                                <option value="historical">历史古代</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- 世界规则设定 -->
+                    <div class="settings-section">
+                        <div class="section-title">世界规则</div>
+
+                        <div class="world-settings-field">
+                            <label class="field-label">
+                                <span class="label-icon">⚖️</span>
+                                <span class="label-text">基本法则</span>
+                            </label>
+                            <textarea id="worldSettingsRules" class="field-textarea"
+                                      placeholder="这个世界的基本运行规则..." rows="3"></textarea>
+                        </div>
+
+                        <div class="world-settings-field">
+                            <label class="field-label">
+                                <span class="label-icon">🌟</span>
+                                <span class="label-text">特殊设定</span>
+                            </label>
+                            <textarea id="worldSettingsSpecial" class="field-textarea"
+                                      placeholder="这个世界的独特之处..." rows="3"></textarea>
+                        </div>
+                    </div>
+                    <!-- 危险操作 -->
+                    <div class="settings-section">
+                        <div class="section-title">危险操作</div>
+                        <div class="settings-item" onclick="deleteCurrentWorld()">
+                            <div class="settings-icon"
+                                 style="background: linear-gradient(135deg, #ff6b6b, #ff8e8e);">
+                                🗑️
+                            </div>
+                            <div class="settings-info">
+                                <div class="settings-label" style="color: #ff3b30;">删除世界</div>
+                                <div class="settings-desc">删除当前世界及其所有数据</div>
+                            </div>
+                            <div class="settings-arrow">›</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sweetheart-list-content" id="sweetheartListContainer">
+                <!-- 联系人列表将由JS动态生成到这里 -->
+            </div>
+        </div>
+
+
+        <!-- ========== 世界选择页面 ========== -->
+        <div class="world-select-page" id="worldSelectPage">
+            <div class="world-select-header">
+                <div class="back-btn" onclick="closeWorldSelect()">←</div>
+                <div class="world-select-title">请选择一个世界</div>
+            </div>
+            <div class="world-select-content" id="worldSelectContent">
+                <!-- 世界列表将由JS动态生成 -->
+            </div>
+        </div>
+        <!-- ========== 新建世界弹窗 ========== -->
+        <div class="modal-overlay" id="newWorldModal">
+            <div class="new-world-modal-card">
+                <div class="new-world-header">
+                    <span class="header-deco">🌍</span>
+                    <span class="header-title">新建世界</span>
+                    <span class="header-deco">🌍</span>
+                </div>
+
+                <div class="new-world-content">
+                    <!-- 世界名称 -->
+                    <div class="world-field required-field">
+                        <label class="world-label">
+                            <span class="label-icon">✨</span>
+                            <span class="label-text">世界名称</span>
+                            <span class="required-star">*</span>
+                        </label>
+                        <input type="text" id="worldNameInput" class="world-input"
+                               placeholder="给你的世界起个名字...">
+                    </div>
+                    <!-- 世界描述 -->
+                    <div class="world-field">
+                        <label class="world-label">
+                            <span class="label-icon">📝</span>
+                            <span class="label-text">世界描述</span>
+                        </label>
+                        <textarea id="worldDescInput" class="world-textarea"
+                                  placeholder="描述一下这个世界的特点..."
+                                  rows="3"></textarea>
+                    </div>
+                    <div class="world-field" id="worldMapField">
+                        <label class="world-label">
+                            <span class="label-icon">🗺️</span>
+                            <span class="label-text">地图</span>
+                        </label>
+                        <!-- 地图预览区域 -->
+                        <div class="world-map-preview-container" id="worldMapPreviewContainer"
+                             onclick="toggleWorldMapOptions()">
+                            <img id="worldMapPreview" src="" alt="World Map" style="display: none;">
+                            <span id="worldMapPlaceholder">点击选择地图</span>
+                        </div>
+                        <!-- 地图选项 (默认隐藏) -->
+                        <div class="world-map-options" id="worldMapOptions">
+                            <!-- V V V 新增的按钮 V V V -->
+                            <button class="world-map-btn" onclick="selectDefaultMap()">默认地图</button>
+                            <!-- ^ ^ ^ 新增的按钮 ^ ^ ^ -->
+                            <label class="world-map-btn">
+                                导入图片
+                                <input type="file" id="worldMapInput" accept="image/*"
+                                       style="display: none;"
+                                       onchange="handleWorldMapUpload(event)">
+                            </label>
+                        </div>
+                    </div>
+                    <!-- 绑定世界书 (可折叠) -->
+                    <div class="world-field">
+                        <div class="world-label-toggle" onclick="toggleWorldWorldbooks()">
+                            <div class="world-label">
+                                <span class="label-icon">📚</span>
+                                <span class="label-text">绑定的世界书</span>
+                            </div>
+                            <span class="toggle-arrow" id="world-wb-arrow">▼</span>
+                        </div>
+                        <div class="world-worldbooks-list" id="worldWorldbooksList" style="display: none;">
+                            <!-- JS动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="new-world-footer">
+                    <button class="world-btn btn-cancel" onclick="closeNewWorldModal()">取消</button>
+                    <button class="world-btn btn-save" onclick="saveNewWorld()">创建</button>
+                </div>
+            </div>
+        </div>
+        <!-- ========== 世界书页面 - 开始 ========== -->
+        <div class="worldbook-page" id="worldbookPage">
+            <div class="worldbook-header">
+                <div class="back-btn" onclick="closeWorldbook()">←</div>
+                <div class="worldbook-title">世界书</div>
+                <div style="display: flex; gap: 8px;">
+                    <div class="category-manage-btn" onclick="openClassificationManage(event)"
+                         title="分类管理">🗂️
+                    </div>
+                    <div class="category-manage-btn" onclick="openCategoryManage(event)" title="分组管理">
+                        📋
+                    </div>
+                    <div class="add-contact-btn" onclick="openWorldbookModal()">+</div>
+                </div>
+            </div>
+
+            <div class="worldbook-content" id="worldbookContent">
+                <!-- 空状态（默认显示） -->
+                <div class="worldbook-empty" id="worldbookEmpty">
+                    <div class="worldbook-empty-icon">📖</div>
+                    <div class="worldbook-empty-text">现在还没有世界书哦</div>
+                    <div class="worldbook-empty-hint">点击右上角添加一个吧 ✨</div>
+                </div>
+
+                <!-- 条目列表（有数据时显示） -->
+                <div class="worldbook-list" id="worldbookList" style="display: none;"></div>
+            </div>
+        </div>
+        <!-- ========== 世界书弹窗 - 开始 ========== -->
+        <div class="worldbook-modal" id="worldbookModal">
+            <div class="worldbook-modal-card">
+                <div class="worldbook-modal-header">
+                    <div class="worldbook-modal-title" id="worldbookModalTitle">新建世界书</div>
+                    <button class="worldbook-modal-close" onclick="closeWorldbookModal()">×</button>
+                </div>
+
+                <div class="worldbook-modal-body">
+                    <!-- 1. 世界书名称 -->
+                    <div class="worldbook-form-group">
+                        <label class="worldbook-form-label">世界书名称</label>
+                        <input type="text" class="worldbook-form-input" id="wbTitleInput"
+                               placeholder="例如：魔法世界设定">
+                    </div>
+
+                    <!-- 2. 分类选择器 -->
+                    <div class="worldbook-form-group">
+                        <label class="worldbook-form-label">分类</label>
+                        <div class="worldbook-category-selector" id="groupSelector">
+                            <div class="category-selected" id="groupSelected">请选择分类</div>
+                            <div class="category-options" id="groupOptions">
+                                <div class="category-option" data-group="worldview">世界观</div>
+                                <div class="category-option" data-group="rules">行为规范</div>
+                                <div class="category-option" data-group="knowledge">知识库</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. 分类选择器（动态生成） -->
+                    <div class="worldbook-form-group">
+                        <label class="worldbook-form-label">分类</label>
+                        <div class="worldbook-category-selector" id="categorySelector">
+                            <div class="category-selected" id="categorySelected">请选择分类</div>
+                            <div class="category-options" id="categoryOptions">
+                                <!-- JS动态填充 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. 内容输入框 -->
+                    <div class="worldbook-form-group">
+                        <label class="worldbook-form-label" id="wbContentLabel">内容</label>
+                        <textarea class="worldbook-form-textarea" id="wbContentInput"
+                                  placeholder="请先选择分类..."></textarea>
+                    </div>
+                </div>
+
+
+                <div class="worldbook-modal-footer">
+                    <button class="worldbook-btn worldbook-btn-cancel" onclick="closeWorldbookModal()">
+                        取消
+                    </button>
+                    <button class="worldbook-btn worldbook-btn-delete" id="worldbookDeleteBtn"
+                            style="display: none;" onclick="deleteWorldbookEntry()">删除
+                    </button>
+                    <button class="worldbook-btn worldbook-btn-save" onclick="saveWorldbookEntry()">保存
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- ========== 世界书弹窗 - 结束 ========== -->
+        <!-- ========== 分类管理页面 - 开始 ========== -->
+        <div class="category-manage-page" id="classificationManagePage">
+            <div class="category-manage-header">
+                <div class="back-btn" onclick="closeClassificationManage()">←</div>
+                <div class="category-manage-title">分类管理</div>
+            </div>
+            <div class="category-manage-content" id="classificationManageContent">
+                <!-- 空状态（默认显示）-->
+                <div class="category-empty" id="classificationEmpty">
+                    <div class="category-empty-icon">🗂️</div>
+                    <div class="category-empty-text">所有分类都空空如也</div>
+                    <div class="category-empty-hint">先去添加一些世界书条目吧 ✨</div>
+                </div>
+                <!-- 分类列表（有数据时显示）-->
+                <div class="category-list" id="classificationList" style="display: none;"></div>
+            </div>
+
+            <!-- ========== 分类管理页面 - 结束 ========== -->
+            <!-- ========== 分组管理页面 - 开始 ========== -->
+            <div class="category-manage-page" id="categoryManagePage">
+                <div class="category-manage-header">
+                    <div class="back-btn" onclick="closeCategoryManage()">←</div>
+                    <div class="category-manage-title">分组管理</div>
+                    <div class="add-category-btn" onclick="openNewCategoryModal()">+</div>
+                </div>
+                <div class="category-manage-content" id="categoryManageContent">
+                    <!-- 空状态（默认显示）-->
+                    <div class="category-empty" id="categoryEmpty">
+                        <div class="category-empty-icon">📂</div>
+                        <div class="category-empty-text">现在还没有分组哦</div>
+                        <div class="category-empty-hint">点击右上角添加一个吧 ✨</div>
+                    </div>
+                    <!-- 分组列表（有数据时显示）-->
+                    <div class="category-list" id="categoryList" style="display: none;"></div>
+                </div>
+            </div>
+            <!-- ========== 新建分组弹窗 ========== -->
+            <div class="category-modal" id="categoryModal">
+                <div class="category-modal-card">
+                    <div class="category-modal-header">
+                        <div class="category-modal-title" id="categoryModalTitle">新建分组</div>
+                        <button class="category-modal-close" onclick="closeCategoryModal()">×</button>
+                    </div>
+                    <div class="category-modal-body">
+                        <div class="category-form-group">
+                            <label class="category-form-label">分组名称</label>
+                            <input type="text" class="category-form-input" id="categoryNameInput"
+                                   placeholder="例如：魔法系统">
+                        </div>
+                        <div class="category-form-group">
+                            <label class="category-form-label">分组描述</label>
+                            <textarea class="category-form-textarea" id="categoryDescInput"
+                                      placeholder="简单描述这个分组的用途..."></textarea>
+                        </div>
+                    </div>
+                    <div class="category-modal-footer">
+                        <button class="category-btn category-btn-cancel" onclick="closeCategoryModal()">取消
+                        </button>
+                        <button class="category-btn category-btn-delete" id="categoryDeleteBtn"
+                                style="display: none;" onclick="deleteCategory()">删除
+                        </button>
+                        <button class="category-btn category-btn-save" onclick="saveCategory()">保存</button>
+                    </div>
+                </div>
+            </div>
+            <!-- ========== 分组管理 - 结束 ========== -->
+
+
+            <!-- ========== 1. 小说书架页面 (新增) ========== -->
+            <div class="novel-shelf-page" id="novelShelfPage">
+                <div class="settings-header">
+                    <div class="back-btn" onclick="closeNovelShelf()">←</div>
+                    <div class="settings-title">我的书架</div>
+                    <!-- 右上角加号，用于上传 -->
+                    <div class="add-contact-btn" onclick="triggerNovelUpload()">+</div>
+                </div>
+
+                <div class="novel-shelf-content" id="novelShelfContent">
+                    <!-- 小说列表将在这里动态生成 -->
+                </div>
+
+                <!-- 隐藏的文件输入框 -->
+                <input type="file" id="novelFileInput" accept=".txt" style="display: none;"
+                       onchange="handleNovelFileSelect(event)">
+            </div>
+
+            <!-- ========== 2. 小说阅读页面 (高仿 UI 版) ========== -->
+            <div class="novel-reader-page" id="novelReaderPage">
+
+                <!-- 顶部：章节标题 (点击中间时显示/隐藏) -->
+                <div class="reader-header-bar hidden" id="readerHeaderBar">
+                    <div class="back-btn-text" onclick="closeNovelReader()">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                        </svg>
+                        <span id="headerTitle">Loading...</span>
+                    </div>
+                </div>
+
+                <!-- 核心阅读区 -->
+                <div class="reader-container" id="readerContainer" onclick="handleReaderClick(event)">
+                    <div id="readerContent">
+                        <!-- 文字将注入到这里 -->
+                    </div>
+                </div>
+
+                <!-- 底部系统栏 (固定显示) -->
+                <div class="reader-system-bar">
+                    <span class="reader-progress" id="readerProgress">0 / 0</span>
+                    <div class="reader-sys-right">
+                        <span id="readerTime">19:05</span>
+                        <div class="reader-battery">
+                            <div class="reader-battery-level"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部浮动菜单 (已修改：加入目录按钮) -->
+                <div class="reader-float-menu hidden" id="readerFloatMenu">
+                    <div class="menu-pill-btn left" onclick="openChapterList()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                        </svg>
+                        目录
+                    </div>
+                    <div class="menu-pill-divider"></div>
+
+                    <div class="menu-pill-btn right" id="novelTtsBtn" onclick="toggleNovelTts()">
+                        <svg id="novelTtsIcon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                            <path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/>
+                        </svg>
+                        <span id="novelTtsText">听书</span>
+                    </div>
+                </div>
+                <!-- ▼▼▼ 新增：目录弹窗列表 ▼▼▼ -->
+                <div class="chapter-list-panel" id="chapterListPanel">
+                    <div class="chapter-list-header">
+                        <div class="chapter-list-title">目录</div>
+                        <div class="chapter-list-close" onclick="closeChapterList()">关闭</div>
+                    </div>
+                    <div class="chapter-list-container" id="chapterListContent">
+                        <!-- JS 动态生成章节列表 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 新增：记账本页面 (完整修复版) ========== -->
+            <div class="ledger-page" id="ledgerPage">
+                <div class="test-header">
+                    <div class="back-btn" onclick="closeLedger()">←</div>
+                    <div class="test-title">小猫账本</div>
+                    <!-- 占位符，保持标题居中 -->
+                    <div class="add-contact-btn" style="opacity: 0; pointer-events: none;">+</div>
+                </div>
+
+                <!-- 1. 顶部：资产卡片 & AI开关 -->
+                <div class="ledger-summary-card">
+                    <div class="ledger-header-row">
+                        <div class="ledger-month-selector">
+                            <span id="ledgerCurrentMonth">--月</span>
+                            <!-- 切换视图按钮 -->
+                            <span class="ledger-toggle-mode" onclick="toggleLedgerMode()">切换列表 📝</span>
+                        </div>
+                        <!-- AI模式切换开关 -->
+                        <div class="ledger-ai-switch" onclick="toggleLedgerAiMode()">
+                            <span class="ai-switch-label">✨ AI 记账</span>
+                            <div class="ai-toggle-btn" id="ledgerAiToggle">
+                                <div class="ai-toggle-circle"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ledger-stats-row">
+                        <div class="stat-item">
+                            <span class="stat-label">收入</span>
+                            <span class="stat-num income" id="statIncome">0.00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">支出</span>
+                            <span class="stat-num expense" id="statExpense">0.00</span>
+                        </div>
+                    </div>
+                    <div class="ledger-balance">
+                        <span>结余</span>
+                        <span id="statBalance">0.00</span>
+                    </div>
+                </div>
+
+                <!-- 2. 模式一：对话记账区 (包含消息列表 + 底部输入框) -->
+                <!-- ⚠️ 之前可能缺失了这一部分 -->
+                <div class="ledger-content-area" id="ledgerChatMode">
+
+                    <!-- 消息列表 -->
+                    <div class="ledger-chat-list" id="ledgerChatList">
+                        <div class="ledger-system-msg">喵~ 发送“项目 金额”或者上传小票照片，我帮你记账哦！💰</div>
+                    </div>
+                    <!-- 底部输入栏 -->
+                    <div class="ledger-input-bar">
+                        <div class="ledger-upload-btn" onclick="triggerLedgerImage()">📷
+                            <input type="file" id="ledgerMsgImageInput" accept="image/*" style="display: none;"
+                                   onchange="handleLedgerImage(event)">
+                        </div>
+                        <input type="text" id="ledgerInput" placeholder="例如：喝奶茶 25">
+                        <button class="ledger-send-btn" onclick="sendLedgerMessage()">记一笔</button>
+                    </div>
+                </div>
+
+
+                <!-- 模式二：明细列表区 (默认隐藏) -->
+                <div class="ledger-content-area hidden" id="ledgerListMode">
+                    <div class="ledger-list-container" id="ledgerListContainer">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. 发红包的弹窗 -->
+            <div class="modal-overlay" id="redPacketModal">
+                <div class="red-packet-creator">
+                    <div class="rp-creator-header">
+                        <span class="rp-creator-close" onclick="closeRedPacketModal()">✕</span>
+                        <span class="rp-creator-title">发红包</span>
+                    </div>
+                    <div class="rp-creator-body">
+                        <div class="rp-amount-field">
+                            <span class="rp-amount-label">金额</span>
+                            <input type="number" id="rpAmountInput" class="rp-amount-input" placeholder="0.00">
+                            <span class="rp-amount-unit">元</span>
+                        </div>
+                        <div class="rp-greeting-field">
+                            <input type="text" id="rpGreetingInput" class="rp-greeting-input"
+                                   placeholder="恭喜发财，大吉大利！">
+                        </div>
+                    </div>
+                    <div class="rp-creator-footer">
+                        <div class="rp-display-amount">￥<span id="rpDisplayAmount">0.00</span></div>
+                        <button id="rpSendBtn" class="rp-send-btn disabled" onclick="sendRedPacket()">塞钱进红包
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- 2. 开红包的动画弹窗 -->
+            <div class="modal-overlay" id="redPacketOpenModal">
+                <div class="rp-opener-backdrop" onclick="closeRedPacketOpener()"></div>
+                <div class="rp-opener-card" id="rpOpenerCard">
+                    <!-- 红包封面 (未打开时) -->
+                    <div class="rp-cover">
+                        <div class="rp-sender-info">
+                            <div class="rp-sender-avatar" id="rpOpenerAvatar"></div>
+                            <div class="rp-sender-name" id="rpOpenerSenderName"></div>
+                        </div>
+                        <div class="rp-greeting" id="rpOpenerGreeting"></div>
+                        <div class="rp-open-btn-wrapper">
+                            <div class="rp-open-btn" id="rpOpenBtn" onclick="animateAndOpenPacket()">开</div>
+                        </div>
+                    </div>
+                    <!-- 红包详情 (打开后) -->
+                    <div class="rp-details">
+                        <div class="rp-details-amount"><span id="rpOpenedAmount"></span><span> 元</span></div>
+                        <div class="rp-details-greeting" id="rpOpenedGreeting"></div>
+                        <div class="rp-details-tip">已存入零钱</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ▼▼▼ 在这里粘贴新增的错误提示框HTML ▼▼▼ -->
+            <div class="modal-overlay error-modal" id="errorModal">
+                <div class="modal-content">
+                    <div class="error-icon">⚠️</div>
+                    <h3 id="errorModalTitle">操作失败</h3>
+                    <p id="errorModalMessage">出现未知错误。</p>
+                </div>
+            </div>
+            <!-- ========== 新增：剧情讨论临时弹窗 ========== -->
+            <div class="modal-overlay" id="discussModal">
+                <div class="discuss-card">
+                    <div class="discuss-header">
+                        <div class="discuss-title">剧情讨论中...</div>
+                        <button class="discuss-close-btn" onclick="closeDiscussModal()">收起</button>
+                    </div>
+
+                    <!-- 聊天区域 -->
+                    <div class="discuss-messages" id="discussMessages">
+                        <!-- 消息会动态插入这里 -->
+                    </div>
+
+                    <!-- 输入区域 -->
+                    <div class="discuss-input-area">
+                        <input type="text" id="discussInput" placeholder="输入想法...">
+                        <button class="discuss-send-btn" onclick="sendDiscussMessage()">发送</button>
+                    </div>
+                </div>
+            </div>
+            <!-- ========== 缺失的：联系人库统一角色卡弹窗 ========== -->
+            <div class="library-character-modal" id="libraryCharacterModal">
+                <div class="library-modal-backdrop" onclick="closeLibraryCharacterModal()"></div>
+                <div class="library-character-card">
+                    <div class="library-card-header">
+                        <div class="library-card-title">编辑联系人</div>
+                        <button class="library-close-btn" onclick="closeLibraryCharacterModal()">×</button>
+                    </div>
+
+                    <div class="library-card-content">
+                        <!-- 头像与核心信息 -->
+                        <div class="library-section library-avatar-row">
+                            <div class="library-avatar" onclick="openLibraryAvatarPicker()">
+                                <img id="library-avatar-preview" src="" alt="Avatar">
+                                <div class="library-avatar-overlay">更换</div>
+                            </div>
+                            <div class="library-basic-info">
+                                <div class="library-id-display">ID: <span id="library-instance-id">--</span></div>
+                                <div>
+                                    <label class="library-label-sm">姓名</label>
+                                    <input type="text" id="library-name" class="library-input" placeholder="角色姓名">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 基础设定 -->
+                        <div class="library-section">
+                            <label class="library-label">基础设定 (Persona)</label>
+                            <textarea id="library-persona" class="library-textarea" rows="3"
+                                      placeholder="角色的简短描述..."></textarea>
+                        </div>
+
+                        <!-- 语音ID设置 -->
+                        <div class="library-section">
+                            <label class="voice-setting-label">🔊 语音ID</label>
+                            <input type="text" id="library-voice-id" class="voice-setting-input"
+                                   placeholder="例如: female-qn-yuxin">
+                        </div>
+
+                        <!-- 扩展信息折叠区 -->
+                        <div class="library-section">
+                            <div class="library-toggle-header" onclick="toggleLibraryExtendedFields()">
+                                <span class="library-label" style="margin:0">✨ 详细设定 (性格/经历)</span>
+                                <span class="library-toggle-arrow" id="library-extended-arrow">▼</span>
+                            </div>
+                            <div class="library-extended-fields" id="library-extended-fields" style="display: none;">
+                                <div class="library-field"><input type="text" id="library-personality"
+                                                                  class="library-input"
+                                                                  placeholder="性格"></div>
+                                <div class="library-field"><input type="text" id="library-occupation"
+                                                                  class="library-input"
+                                                                  placeholder="职业"></div>
+                                <div class="library-field"><input type="text" id="library-catchphrase"
+                                                                  class="library-input"
+                                                                  placeholder="口头禅"></div>
+                                <div class="library-field"><input type="text" id="library-relationship"
+                                                                  class="library-input"
+                                                                  placeholder="与我的关系"></div>
+                                <div class="library-field"><textarea id="library-history" class="library-textarea"
+                                                                     rows="2"
+                                                                     placeholder="过往经历..."></textarea></div>
+                            </div>
+                        </div>
+                        <!-- 世界书绑定 (可折叠) -->
+                        <div class="library-section">
+                            <div class="library-toggle-header" onclick="toggleLibraryWorldbooks()">
+                                <span class="library-label" style="margin:0">📚 绑定的世界书</span>
+                                <span class="library-toggle-arrow" id="library-wb-arrow">▼</span>
+                            </div>
+                            <div class="library-worldbooks-list" id="library-worldbooks-list" style="display: none;">
+                                <!-- JS动态生成 -->
+                            </div>
+                        </div>
+                        <!-- 面具绑定 (可折叠) -->
+                        <div class="library-section">
+                            <div class="library-toggle-header" onclick="toggleLibraryMasks()">
+                                <span class="library-label" style="margin:0">🎭 绑定的面具</span>
+                                <span class="library-toggle-arrow" id="library-mask-arrow">▼</span>
+                            </div>
+                            <div class="library-masks-list" id="library-masks-list" style="display: none;">
+                                <!-- JS动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="library-card-footer">
+                        <button class="library-btn library-btn-cancel" onclick="closeLibraryCharacterModal()">取消
+                        </button>
+                        <button class="library-btn library-btn-save" onclick="saveLibraryCharacter()">保存</button>
+                    </div>
+
+                    <!-- 隐藏的文件输入框 (解决报错的关键) -->
+                    <input type="file" id="library-avatar-input" accept="image/*" style="display: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- 2. 引入外部的JavaScript文件 (defer属性确保HTML解析完再执行) -->
+    <script src="script.js" defer></script>
+
+</body>
+</html>
