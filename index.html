@@ -1411,8 +1411,13 @@
                 <div class="map-editor-header">
                     <div class="back-btn" onclick="closeMapEditor()">←</div>
                     <div class="map-editor-title">地图编辑</div>
+                    <!-- ✨ 新增：上传地图按钮 -->
+                    <div class="map-upload-btn" onclick="triggerMapEditorUpload()">🖼️</div>
                     <div class="map-save-btn" onclick="saveMapData()">保存</div>
                 </div>
+                <!-- ✨ 新增：隐藏的文件输入框 -->
+                <input type="file" id="mapEditorFileInput" accept="image/*" style="display: none;"
+                       onchange="handleMapEditorFileUpload(event)">
                 <div class="map-editor-content">
                     <!-- 地图容器 -->
                     <div class="map-container" id="mapContainer" onclick="addMapPin(event)">
@@ -1531,21 +1536,6 @@
                                       placeholder="这个世界的独特之处..." rows="3"></textarea>
                         </div>
                     </div>
-                    <!-- 危险操作 -->
-                    <div class="settings-section">
-                        <div class="section-title">危险操作</div>
-                        <div class="settings-item" onclick="deleteCurrentWorld()">
-                            <div class="settings-icon"
-                                 style="background: linear-gradient(135deg, #ff6b6b, #ff8e8e);">
-                                🗑️
-                            </div>
-                            <div class="settings-info">
-                                <div class="settings-label" style="color: #ff3b30;">删除世界</div>
-                                <div class="settings-desc">删除当前世界及其所有数据</div>
-                            </div>
-                            <div class="settings-arrow">›</div>
-                        </div>
-                    </div>
                 </div>
             </div>
             <div class="sweetheart-list-content" id="sweetheartListContainer">
@@ -1553,92 +1543,6 @@
             </div>
         </div>
 
-
-        <!-- ========== 世界选择页面 ========== -->
-        <div class="world-select-page" id="worldSelectPage">
-            <div class="world-select-header">
-                <div class="back-btn" onclick="closeWorldSelect()">←</div>
-                <div class="world-select-title">请选择一个世界</div>
-            </div>
-            <div class="world-select-content" id="worldSelectContent">
-                <!-- 世界列表将由JS动态生成 -->
-            </div>
-        </div>
-        <!-- ========== 新建世界弹窗 ========== -->
-        <div class="modal-overlay" id="newWorldModal">
-            <div class="new-world-modal-card">
-                <div class="new-world-header">
-                    <span class="header-deco">🌍</span>
-                    <span class="header-title">新建世界</span>
-                    <span class="header-deco">🌍</span>
-                </div>
-
-                <div class="new-world-content">
-                    <!-- 世界名称 -->
-                    <div class="world-field required-field">
-                        <label class="world-label">
-                            <span class="label-icon">✨</span>
-                            <span class="label-text">世界名称</span>
-                            <span class="required-star">*</span>
-                        </label>
-                        <input type="text" id="worldNameInput" class="world-input"
-                               placeholder="给你的世界起个名字...">
-                    </div>
-                    <!-- 世界描述 -->
-                    <div class="world-field">
-                        <label class="world-label">
-                            <span class="label-icon">📝</span>
-                            <span class="label-text">世界描述</span>
-                        </label>
-                        <textarea id="worldDescInput" class="world-textarea"
-                                  placeholder="描述一下这个世界的特点..."
-                                  rows="3"></textarea>
-                    </div>
-                    <div class="world-field" id="worldMapField">
-                        <label class="world-label">
-                            <span class="label-icon">🗺️</span>
-                            <span class="label-text">地图</span>
-                        </label>
-                        <!-- 地图预览区域 -->
-                        <div class="world-map-preview-container" id="worldMapPreviewContainer"
-                             onclick="toggleWorldMapOptions()">
-                            <img id="worldMapPreview" src="" alt="World Map" style="display: none;">
-                            <span id="worldMapPlaceholder">点击选择地图</span>
-                        </div>
-                        <!-- 地图选项 (默认隐藏) -->
-                        <div class="world-map-options" id="worldMapOptions">
-                            <!-- V V V 新增的按钮 V V V -->
-                            <button class="world-map-btn" onclick="selectDefaultMap()">默认地图</button>
-                            <!-- ^ ^ ^ 新增的按钮 ^ ^ ^ -->
-                            <label class="world-map-btn">
-                                导入图片
-                                <input type="file" id="worldMapInput" accept="image/*"
-                                       style="display: none;"
-                                       onchange="handleWorldMapUpload(event)">
-                            </label>
-                        </div>
-                    </div>
-                    <!-- 绑定世界书 (可折叠) -->
-                    <div class="world-field">
-                        <div class="world-label-toggle" onclick="toggleWorldWorldbooks()">
-                            <div class="world-label">
-                                <span class="label-icon">📚</span>
-                                <span class="label-text">绑定的世界书</span>
-                            </div>
-                            <span class="toggle-arrow" id="world-wb-arrow">▼</span>
-                        </div>
-                        <div class="world-worldbooks-list" id="worldWorldbooksList" style="display: none;">
-                            <!-- JS动态生成 -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="new-world-footer">
-                    <button class="world-btn btn-cancel" onclick="closeNewWorldModal()">取消</button>
-                    <button class="world-btn btn-save" onclick="saveNewWorld()">创建</button>
-                </div>
-            </div>
-        </div>
         <!-- ========== 世界书页面 - 开始 ========== -->
         <div class="worldbook-page" id="worldbookPage">
             <div class="worldbook-header">
@@ -1875,7 +1779,7 @@
                 </div>
             </div>
         </div>
-    
+
 
         <!-- ========== 新增：记账本页面 (完整修复版) ========== -->
         <div class="ledger-page" id="ledgerPage">

@@ -2726,96 +2726,13 @@ let currentWorldId = null; // 当前选中的世界ID
 
 // ▼▼▼ 使用这个【绝对修正版】的 openWorldSelect 函数进行替换 ▼▼▼
 
+// 替换 openWorldSelect 函数
 function openWorldSelect() {
-    // 【核心修正】在打开自己之前，确保所有其他可能打开的页面都被关闭
-    document.getElementById('sweetheartListPage').classList.remove('show');
-    document.getElementById('contactsPage').classList.remove('show');
-    // 未来如果还有其他页面，也在这里添加关闭逻辑
-
-    // 打开世界选择页面
-    document.getElementById('worldSelectPage').classList.add('show');
-    renderWorldList();
+    console.log("世界选择页面已被禁用，直接进入默认世界。");
+    // 直接跳转到密友列表
+    openSweetheartList();
 }
 
-
-// ▼▼▼ 使用这个【关键修正版】的 closeWorldSelect 函数进行替换 ▼▼▼
-
-/**
- * [关键修正版] 关闭世界选择页面
- * - 不再错误地清除 worldId
- * - 确保能返回主屏幕
- */
-function closeWorldSelect() {
-    // 只负责关闭页面，不再处理 currentWorldId
-    document.getElementById('worldSelectPage').classList.remove('show');
-    console.log('世界选择页面已关闭。');
-}
-
-
-/**
- * 渲染世界列表
- */
-function renderWorldList() {
-    const container = document.getElementById('worldSelectContent');
-    container.innerHTML = '';
-
-    // 渲染现有世界
-    worldsData.forEach(world => {
-        const card = document.createElement('div');
-        card.className = 'world-card';
-        card.onclick = () => enterWorld(world.id);
-
-        // ✅ 修复:正确计算联系人数量
-        // 从 sweetheartContactsData 中筛选出属于该世界的联系人
-        let contactCount = 0;
-        if (world.contacts && world.contacts.length > 0) {
-            contactCount = sweetheartContactsData.filter(contact =>
-                world.contacts.includes(String(contact.id))
-            ).length;
-        }
-
-        console.log(`世界"${world.name}"的联系人ID:`, world.contacts, `实际数量:${contactCount}`);
-
-        card.innerHTML = `
-            <div class="world-card-icon">${world.icon || '🌍'}</div>
-            <div class="world-card-name">${escapeHTML(world.name)}</div>
-            <div class="world-card-desc">${escapeHTML(world.description || '暂无描述')}</div>
-            <div class="world-card-contacts">${contactCount} 个联系人</div>
-        `;
-
-        container.appendChild(card);
-    });
-
-    // 添加"新建世界"卡片
-    const newCard = document.createElement('div');
-    newCard.className = 'world-card new-world';
-    newCard.onclick = openNewWorldModal;
-    newCard.innerHTML = `
-        <div class="world-card-icon">➕</div>
-        <div class="world-card-name">新建世界</div>
-        <div class="world-card-desc">创建一个全新的世界</div>
-    `;
-    container.appendChild(newCard);
-}
-
-
-/**
- * 进入指定世界（打开该世界的通讯录）
- */
-function enterWorld(worldId) {
-    currentWorldId = worldId;
-    localStorage.setItem('currentWorldId', worldId);
-
-    console.log(`进入世界: ${worldId}`);
-
-    // 关闭世界选择页面，但不清除worldId
-    closeWorldSelect(false);
-
-    // 延迟打开密友列表,让关闭动画完成
-    setTimeout(() => {
-        openSweetheartList();
-    }, 300);
-}
 
 
 /**
@@ -2838,53 +2755,6 @@ function openWorldContacts(worldId) {
     );
 
     renderContacts(worldContacts); // 渲染该世界的联系人
-}
-
-
-/**
- * 打开新建世界弹窗
- */
-function openNewWorldModal() {
-    document.getElementById('worldNameInput').value = '';
-    document.getElementById('worldDescInput').value = '';
-    document.getElementById('worldWorldbooksList').style.display = 'none';
-    document.getElementById('world-wb-arrow').classList.remove('open');
-
-    // V V V 新增的重置代码 V V V
-    document.getElementById('worldMapPreview').src = '';
-    document.getElementById('worldMapPreview').style.display = 'none';
-    document.getElementById('worldMapPlaceholder').style.display = 'block';
-    document.getElementById('worldMapOptions').style.display = 'none';
-    document.getElementById('worldMapInput').value = ''; // 清空文件选择，以便可以重复上传相同文件
-    // ^ ^ ^ 新增的重置代码 ^ ^ ^
-
-    document.getElementById('newWorldModal').classList.add('show');
-    renderWorldWorldbooksList(); // 渲染可绑定的世界书列表
-}
-
-
-/**
- * 关闭新建世界弹窗
- */
-function closeNewWorldModal() {
-    document.getElementById('newWorldModal').classList.remove('show');
-}
-
-/**
- * 切换世界书列表的展开/收起
- */
-function toggleWorldWorldbooks() {
-    const list = document.getElementById('worldWorldbooksList');
-    const arrow = document.getElementById('world-wb-arrow');
-
-    if (list.style.display === 'none') {
-        renderWorldWorldbooksList();
-        list.style.display = 'block';
-        arrow.classList.add('open');
-    } else {
-        list.style.display = 'none';
-        arrow.classList.remove('open');
-    }
 }
 
 /**
@@ -2957,78 +2827,6 @@ function selectDefaultMap() {
 }
 
 
-/**
- * 处理用户上传的地图图片
- * @param {Event} event - 文件输入框的 change 事件
- */
-function handleWorldMapUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // 使用 FileReader 将图片文件转为 Base64 URL
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const previewImg = document.getElementById('worldMapPreview');
-        const placeholder = document.getElementById('worldMapPlaceholder');
-
-        previewImg.src = e.target.result;
-        previewImg.style.display = 'block';
-        placeholder.style.display = 'none';
-
-        // 上传后隐藏选项
-        document.getElementById('worldMapOptions').style.display = 'none';
-    };
-    reader.readAsDataURL(file);
-}
-
-/**
- * 保存新建的世界
- */
-function saveNewWorld() {
-    const name = document.getElementById('worldNameInput').value.trim();
-
-    if (!name) {
-        alert('请填写世界名称!');
-        return;
-    }
-
-    const description = document.getElementById('worldDescInput').value.trim();
-    const mapUrl = document.getElementById('worldMapPreview').src;
-
-    // 获取选中的世界书
-    const selectedWorldbooks = [];
-    document.querySelectorAll('.world-wb-item input[type="checkbox"]:checked').forEach(cb => {
-        selectedWorldbooks.push(cb.value);
-    });
-
-    const newWorld = {
-        id: 'WORLD_' + Date.now(),
-        name,
-        description,
-        mapUrl: mapUrl && !mapUrl.endsWith('base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=') ? mapUrl : '',
-        icon: '🌍',
-        contacts: [], // 新世界默认没有联系人
-        worldbooks: selectedWorldbooks,
-        timestamp: Date.now()
-    };
-
-    worldsData.push(newWorld);
-    saveWorldsData();
-    closeNewWorldModal();
-    showSuccessModal('创建成功', `世界"${name}"已创建!`);
-    renderWorldList();
-
-    setTimeout(() => {
-        enterWorld(newWorld.id);
-        // ✅ 新增:延迟提示用户添加联系人
-        setTimeout(() => {
-            if (confirm('世界创建成功!是否立即添加第一个联系人?')) {
-                addNewSweetheartContact();
-            }
-        }, 1500);
-    }, 1000);
-}
-
 
 /**
  * 保存世界数据到localStorage
@@ -3041,33 +2839,71 @@ function saveWorldsData() {
     }
 }
 
-/**
- * 从localStorage加载世界数据
- */
+// 加载世界数据（增强版：确保默认世界有地图）
 function loadWorldsData() {
     try {
         const saved = localStorage.getItem('phoneWorldsData');
+
+        // 🗺️ 这里定义你的内置默认地图链接
+        const defaultMapUrl = 'https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1760979959274_qdqqd_m9jrpo.jpg';
+
+        // 定义默认世界对象（包含默认地图）
+        const defaultWorld = {
+            id: 'DEFAULT_WORLD',
+            name: '默认世界',
+            description: '初始设定的世界',
+            icon: '🌏',
+            mapUrl: defaultMapUrl, // ✨ 确保新建时有地图
+            contacts: ['1', '2', 'SH_default_001'],
+            worldbooks: [],
+            timestamp: Date.now()
+        };
+
         if (saved) {
             worldsData = JSON.parse(saved);
-            console.log('成功加载世界数据,共', worldsData.length, '个世界');
+
+            // 🔥 核心修复逻辑：检查现有的默认世界是否丢失了地图
+            const existingDefaultWorld = worldsData.find(w => w.id === 'DEFAULT_WORLD');
+            if (existingDefaultWorld) {
+                if (!existingDefaultWorld.mapUrl) {
+                    existingDefaultWorld.mapUrl = defaultMapUrl;
+                    saveWorldsData(); // 立即保存修复
+                    console.log('✅ 已自动为默认世界补全内置地图');
+                }
+            }
+
+            // 如果数据完全错乱导致没有任何世界，重新推入默认世界
+            if (worldsData.length === 0) {
+                worldsData.push(defaultWorld);
+                saveWorldsData();
+            }
         } else {
-            // ✅ 修复:将所有默认联系人ID都添加到默认世界
-            worldsData.push({
-                id: 'DEFAULT_WORLD',
-                name: '一个平平无奇的世界',
-                description: '这是一个普通的世界',
-                icon: '🌏',
-                contacts: ['1', '2', 'SH_default_001'], // ✅ 添加第三个默认联系人
-                worldbooks: [],
-                timestamp: Date.now()
-            });
+            // 首次安装初始化
+            worldsData.push(defaultWorld);
             saveWorldsData();
-            console.log('已初始化默认世界数据。');
+
+            // 🔥 关键：首次加载时，预设默认地图的地点数据 (王都、魔法学院等)
+            const mapKey = `mapPins_${defaultWorld.id}`;
+            if (!localStorage.getItem(mapKey)) {
+                // 使用你代码里定义的 DEFAULT_MAP_LOCATIONS
+                localStorage.setItem(mapKey, JSON.stringify(DEFAULT_MAP_LOCATIONS));
+            }
         }
+
+        // 强制锁定到第一个世界（防止 currentWorldId 为空）
+        if (!currentWorldId) {
+            currentWorldId = worldsData[0].id;
+            localStorage.setItem('currentWorldId', currentWorldId);
+        }
+
+        console.log('✅ 世界数据已加载，当前锁定世界:', currentWorldId);
+
     } catch (e) {
         console.error('加载世界数据失败:', e);
     }
 }
+
+
 
 
 let currentChatContact = null;
@@ -4085,15 +3921,8 @@ function openContacts() {
 function closeContacts() {
     document.getElementById('contactsPage').classList.remove('show');
     document.getElementById('contactsSearch').value = '';
-
-    // 如果是从某个世界进入通讯录的，返回时应该回到世界选择页面
-    if (currentWorldId) {
-        // 延迟一下，让通讯录关闭动画完成
-        setTimeout(() => {
-            openWorldSelect();
-            // 注意：这里不清除currentWorldId，因为用户可能还要在世界选择页面操作
-        }, 300);
-    }
+    // 🔥 修改：即便是从世界进入的，返回时也直接回桌面，不再经过世界选择页
+    // 删除原有的 openWorldSelect 调用
 }
 
 
@@ -4673,7 +4502,7 @@ function addDragListeners(el, clickable) {
             else if (id === 'study_mode') {
                 openContacts(); // 学习模式 -> 打开通讯录
             } else if (id === 'chat_mode') {
-                openWorldSelect(); // 闲聊模式 -> 打开世界选择/密友列表
+                openSweetheartList();
             }
             // ▲▲▲ 新增结束 ▲▲▲
         }
@@ -7152,8 +6981,6 @@ function addIconToDockPanel(element) {
 // ▼▼▼ 使用这个【绝对修正版】的 openSweetheartList 函数进行替换 ▼▼▼
 
 function openSweetheartList() {
-    // 【核心修正】在打开自己之前，确保其他页面是关闭的
-    document.getElementById('worldSelectPage').classList.remove('show');
 
     // 打开密友列表页面
     document.getElementById('sweetheartListPage').classList.add('show');
@@ -7166,16 +6993,8 @@ function openSweetheartList() {
 function closeSweetheartList(isNavigatingBack = false) {
     document.getElementById('sweetheartListPage').classList.remove('show');
 
-    // 【核心修正】只有在明確是 "返回" 操作时（点击左上角返回键），才执行跳转
-    if (isNavigatingBack) {
-        // 如果当前处在一个世界中，返回应该回到世界选择页面
-        if (currentWorldId) {
-            setTimeout(() => {
-                openWorldSelect();
-            }, 300); // 延迟等待关闭动画
-        }
-        // 如果没有在世界中（理论上不该发生），则什么都不做，回到主屏幕
-    }
+    // 🔥 修改：无论是否点击返回键，都只是关闭当前页，即回到桌面
+    // 不需要再调用 openWorldSelect()
 }
 
 // ▼▼▼ 替换这个新的 getLastMessagePreview 函数 ▼▼▼
@@ -8042,22 +7861,18 @@ The JSON object must have two main keys: "reply" and "status".
         *   \`features\`: Describe any objective physical features or items on the user mentioned or implied in the chat. e.g., "身上特点：[左手手腕上戴着一块手表]", "特殊标记：[暂未提及]", "持有物：[一杯咖啡]"
 **Example JSON output format:**
 {
-  "reply": "宝宝快看，我为你画的星空！---<render>\\n<canvas id='c'></canvas>\\n<script>\\n  const canvas = document.getElementById('c'); const ctx = canvas.getContext('2d'); /* ... canvas drawing script ... */\\n</script>\\n</render>---喜欢吗？",
+  "reply": "宝宝快看，我为你画的星空！---<render>...</render>---喜欢吗？",
   "status": {
     "character": {
-      "location": "在我的小床上滚来滚去",
-      "appearance": "只穿了件宽松的吊带睡裙",
-      "action": "抱着印有你照片的抱枕",
-      "thoughts": "他怎么还不回我消息...是不是在和别人聊天？",
-      "private_thoughts": "好想念他抱着我的感觉，想被他亲吻全身..."
+      "location": "在我的小床上",
+      "action": "抱着印有你照片的抱枕"
     },
     "user": {
-      "location": "推测地点：[公司/办公室]",
-      "appearance": "衣着：[一件格子衬衫]",
-      "action": "行为：[正在操作电脑与你聊天]",
-      "features": "身上特点：[暂未提及特殊标记/身上有其他人留下的吻痕/化了特别漂亮的妆]"
+      "location": "推测：公司",
+      "action": "正在回复消息"
     }
   }
+}
   **Multi-Context Awareness:**
 You are roleplaying in two separate chat contexts: a "Normal Chat" and a "Sweetheart Chat". Your instructions may contain a block formatted as \`[Background Information: ...]\`. This block is a summary of your conversation in the *other* chat context and should be used for memory and consistency ONLY. **DO NOT directly reply to or quote from the background information.** Use it to inform your personality and make your current reply more contextually aware.
 **Red Packet Awareness:**
@@ -8169,16 +7984,13 @@ const OFFLINE_MODE_PROMPT = `[线下模式 - 沉浸式叙事]
   "status": {
     "character": {
       "location": "角色当前所在的具体位置",
-      "appearance": "角色当前的穿着打扮",
       "action": "角色正在做什么",
-      "thoughts": "角色此刻的内心想法",
-      "private_thoughts": "角色隐藏的私密心绪或欲望"
+      
     },
     "user": {
       "location": "用户（玩家）所在的位置",
-      "appearance": "用户的穿着或外观特征",
       "action": "用户正在进行的行为",
-      "features": "用户身上的显著特征或变化"
+      
     }
   }
 }
@@ -8194,16 +8006,14 @@ const OFFLINE_MODE_PROMPT = `[线下模式 - 沉浸式叙事]
   "status": {
     "character": {
       "location": "神秘的古老图书馆大厅",
-      "appearance": "穿着深蓝色长袍，头发有些凌乱",
       "action": "警惕地观察着四周",
-      "thoughts": "这里有种熟悉的感觉...",
-      "private_thoughts": "心跳莫名加快了"
+      
     },
     "user": {
       "location": "站在我身旁",
-      "appearance": "看起来有些紧张",
+      
       "action": "紧紧握着手中的物品",
-      "features": "额头上有细密的汗珠"
+      
     }
   }
 }
@@ -10338,6 +10148,7 @@ function openMapEditor() {
     }
 }
 
+
 // 关闭地图编辑器
 function closeMapEditor() {
     document.getElementById('mapEditorPage').classList.remove('show');
@@ -10348,6 +10159,58 @@ function closeMapEditor() {
         hint.classList.remove('show');
     }
 }
+
+// ✨ 新增：触发地图上传
+function triggerMapEditorUpload() {
+    if (!currentWorldId) {
+        showSuccessModal('提示', '请先选择一个世界！', 2000);
+        return;
+    }
+    document.getElementById('mapEditorFileInput').click();
+}
+
+// ✨ 新增：处理地图文件上传
+function handleMapEditorFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 限制文件大小 (例如 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert("图片太大啦，请上传 5MB 以内的图片");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const newMapUrl = e.target.result;
+
+        // 1. 立即更新界面预览
+        const mapImage = document.getElementById('worldMapImage');
+        const mapContainer = document.getElementById('mapContainer');
+
+        mapImage.src = newMapUrl;
+        mapContainer.classList.remove('empty'); // 移除空状态样式
+
+        // 2. 更新数据并保存
+        const world = worldsData.find(w => w.id === currentWorldId);
+        if (world) {
+            world.mapUrl = newMapUrl;
+            saveWorldsData(); // 保存到 localStorage
+            console.log(`✅ 世界 "${world.name}" 的地图已更新`);
+        }
+
+        // 3. 提示成功
+        showSuccessModal('地图更新', '新地图已应用并保存！✨');
+    };
+
+    reader.onerror = function() {
+        showErrorModal('上传失败', '读取图片出错，请重试');
+    };
+
+    reader.readAsDataURL(file);
+    event.target.value = ''; // 清空输入框，允许重复上传同一文件
+}
+
 
 // 加载地图数据
 function loadMapData() {
@@ -10727,122 +10590,54 @@ function openWorldbookBinding() {
     alert('世界书绑定功能开发中...');
 }
 
-// 打开世界设定编辑
+// 打开世界设定编辑 (无提示版)
 function openWorldSettings() {
-    if (!currentWorldId) {
-        alert('请先选择一个世界！');
-        return;
-    }
-
+    // 直接查找当前世界，如果没找到（极罕见情况），直接静默返回或打印日志，不打扰用户
     const world = worldsData.find(w => w.id === currentWorldId);
     if (!world) {
-        alert('未找到当前世界数据！');
+        console.warn('Open Settings: No current world found.');
         return;
     }
-
     // 填充当前世界的数据
     document.getElementById('worldSettingsName').value = world.name || '';
     document.getElementById('worldSettingsDesc').value = world.description || '';
     document.getElementById('worldSettingsStyle').value = world.style || 'fantasy';
     document.getElementById('worldSettingsRules').value = world.rules || '';
     document.getElementById('worldSettingsSpecial').value = world.special || '';
-
     // 显示页面
     document.getElementById('worldSettingsPage').classList.add('show');
 }
-
 // 关闭世界设定编辑
 function closeWorldSettings() {
     document.getElementById('worldSettingsPage').classList.remove('show');
 }
 
-// 保存世界设定
+// 保存世界设定 (无提示版)
 function saveWorldSettings() {
-    if (!currentWorldId) {
-        alert('未选择世界！');
-        return;
-    }
-
     const world = worldsData.find(w => w.id === currentWorldId);
-    if (!world) {
-        alert('未找到世界数据！');
-        return;
-    }
-
+    if (!world) return;
     // 获取表单数据
     const name = document.getElementById('worldSettingsName').value.trim();
     const description = document.getElementById('worldSettingsDesc').value.trim();
     const style = document.getElementById('worldSettingsStyle').value;
     const rules = document.getElementById('worldSettingsRules').value.trim();
     const special = document.getElementById('worldSettingsSpecial').value.trim();
-
     if (!name) {
-        alert('世界名称不能为空！');
+        showSuccessModal('提示', '世界名称不能为空哦', 1500);
         return;
     }
-
     // 更新世界数据
     world.name = name;
     world.description = description;
     world.style = style;
     world.rules = rules;
     world.special = special;
-
     // 保存到localStorage
     saveWorldsData();
-
     // 关闭页面并显示成功提示
     closeWorldSettings();
     showSuccessModal('保存成功', '世界设定已更新！');
-
-    // 更新世界列表显示
-    renderWorldList();
 }
-
-// 删除当前世界
-function deleteCurrentWorld() {
-    if (!currentWorldId) {
-        alert('未选择世界！');
-        return;
-    }
-
-    const world = worldsData.find(w => w.id === currentWorldId);
-    if (!world) {
-        alert('未找到世界数据！');
-        return;
-    }
-
-    if (confirm(`确定要删除世界"${world.name}"吗？\n\n这将同时删除：\n- 世界的所有设定\n- 世界地图和地点\n- 关联的所有联系人\n\n此操作无法撤销！`)) {
-        // 从数组中删除世界
-        worldsData = worldsData.filter(w => w.id !== currentWorldId);
-
-        // 删除地图数据
-        localStorage.removeItem(`mapPins_${currentWorldId}`);
-
-        // 保存更新后的世界列表
-        saveWorldsData();
-
-        // 清除当前世界ID
-        currentWorldId = null;
-        localStorage.removeItem('currentWorldId');
-
-        // 关闭所有相关页面
-        closeWorldSettings();
-        closeSweetheartSettings();
-        closeSweetheartList(false);
-
-        // 显示成功提示
-        showSuccessModal('删除成功', '世界已被永久删除');
-
-        // 返回世界选择页面
-        setTimeout(() => {
-            openWorldSelect();
-        }, 500);
-    }
-}
-
-// 删除不需要的函数
-// 删除 openWorldbookBinding 函数，因为已经移除了这个功能
 
 /**
  * 编辑猫咪状态数值
@@ -14687,6 +14482,7 @@ let currentChapterIndex = 0; // 当前章节索引
 function openNovelShelf() {
     document.getElementById('iconDockPanel').classList.remove('show'); // 关闭其他可能存在的浮层
     document.getElementById('folderOverlay').classList.remove('show');
+// 🔥 新增这一行：确保世界选择页面被强制移出
     document.getElementById('novelShelfPage').classList.add('show');
     loadNovelLibrary();
     renderNovelShelf();
@@ -14703,7 +14499,7 @@ function triggerNovelUpload() {
 }
 
 // 4. 处理文件上传 (保持不变，存入IndexedDB)
-// [步骤2] 处理文件上传 (已集成自动分析)
+// [步骤2] 处理文件上传 (已修复：增加GBK/UTF-8自动编码识别)
 async function handleNovelFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -14714,44 +14510,63 @@ async function handleNovelFileSelect(event) {
         return;
     }
 
-    // 给用户一个稍微具体的提示
-    showSuccessModal('正在导入', '正在上架书籍并进行AI结构分析...', 3000);
+    // 给用户一个具体的提示
+    showSuccessModal('正在导入', '正在智能识别编码并分析书籍...', 3000);
 
-    const reader = new FileReader();
-    reader.onload = async function (e) {
-        const textContent = e.target.result;
-
-        try {
-            const contentId = await ImageDB.saveText(textContent);
-
-            const newBook = {
-                id: 'BOOK_' + Date.now(),
-                title: file.name.replace('.txt', ''),
-                contentId: contentId,
-                currentChapterIndex: 0,
-                currentScrollPos: 0,
-                addedAt: Date.now(),
-                themeColorIndex: Math.floor(Math.random() * 5),
-                // ✨ 关键标记：初始未分析
-                isAnalyzed: false,
-                aiAnalysis: null
-            };
-
-            novelsLibrary.unshift(newBook);
-            saveNovelLibrary();
-            renderNovelShelf();
-
-            // 🔥 立即触发后台智能分析 🔥
-            analyzeNovelStructure(newBook.id);
-
-        } catch (err) {
-            console.error('书籍导入错误:', err);
-            alert('存储失败，请检查空间或重试。');
-        }
+    // --- 🛠️ 辅助函数：封装 FileReader 为 Promise ---
+    const readFileText = (fileToRead, encoding) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(fileToRead, encoding);
+        });
     };
-    reader.readAsText(file, 'utf-8');
-    event.target.value = '';
+
+    try {
+        // 1. 尝试用默认的 UTF-8 读取
+        let textContent = await readFileText(file, 'UTF-8');
+
+        // 2. 🕵️ 智能检测：检查前500个字符中是否包含“” (乱码占位符)
+        // 如果开头就包含乱码，或者全文包含大量连续的乱码，说明编码不对
+        // GBK文件用UTF-8读通常会出现很多
+        if (textContent.substring(0, 500).includes('')) {
+            console.warn('⚠️ 检测到 UTF-8 乱码，自动切换为 GBK 编码重试...');
+            textContent = await readFileText(file, 'GBK');
+        }
+
+        // 3. 继续原有的保存逻辑
+        const contentId = await ImageDB.saveText(textContent);
+
+        const newBook = {
+            id: 'BOOK_' + Date.now(),
+            title: file.name.replace('.txt', ''),
+            contentId: contentId,
+            currentChapterIndex: 0,
+            currentScrollPos: 0,
+            addedAt: Date.now(),
+            themeColorIndex: Math.floor(Math.random() * 5),
+            isAnalyzed: false,
+            aiAnalysis: null
+        };
+
+        novelsLibrary.unshift(newBook);
+        saveNovelLibrary();
+        renderNovelShelf();
+
+        console.log(`✅ 书籍《${newBook.title}》导入成功，开始后台分析...`);
+
+        // 🔥 立即触发后台智能分析 🔥
+        analyzeNovelStructure(newBook.id);
+
+    } catch (err) {
+        console.error('书籍导入错误:', err);
+        showErrorModal('导入失败', '文件读取出错，请检查文件是否损坏。');
+    } finally {
+        event.target.value = ''; // 清空 input，允许重复上传同名文件
+    }
 }
+
 
 // 5. 渲染书架 (保持不变)
 function renderNovelShelf() {
@@ -15180,9 +14995,11 @@ function updateReaderPageNumber() {
 
 
 /* ========== 目录/章节跳转功能 ========== */
+// script.js
 
 /**
- * 打开目录面板
+ * 打开目录面板 (修复版)
+ * 修复了使用 scrollIntoView 导致整个页面发生位移的问题
  */
 function openChapterList() {
     // 1. 隐藏原来的浮动菜单
@@ -15195,24 +15012,31 @@ function openChapterList() {
     // 3. 显示目录面板
     const panel = document.getElementById('chapterListPanel');
 
-    // 🔥🔥🔥【关键新增】给整个面板绑定阻断事件，防止误触底层 🔥🔥🔥
-    // 每次打开前先移除旧的，防止重复绑定（保险起见）
+    // 给整个面板绑定阻断事件，防止误触底层
     panel.onclick = (e) => {
-        e.stopPropagation(); // 阻止点击事件传到屏幕或Dock栏
+        e.stopPropagation();
     };
-    // 同时也阻止触摸移动穿透（防止在列表滑不动时带动下面页面）
     panel.ontouchmove = (e) => {
         e.stopPropagation();
-        // 注意：这里不阻止默认行为，否则列表就滚不动了，只阻止冒泡
     };
 
     panel.classList.add('show');
 
-    // 4. 自动滚动到当前章节位置
+    // 4. 自动滚动到当前章节位置 (修复逻辑)
     setTimeout(() => {
-        const activeItem = document.querySelector('.chapter-item.active');
-        if (activeItem) {
-            activeItem.scrollIntoView({block: 'center', behavior: 'auto'});
+        const container = document.getElementById('chapterListContent');
+        const activeItem = container.querySelector('.chapter-item.active');
+
+        if (activeItem && container) {
+            // 🔥 核心修复：手动计算滚动位置，替代 scrollIntoView
+            // 算法：(元素距离容器顶部的距离) - (容器高度的一半) + (元素高度的一半) = 居中
+            const targetScroll = activeItem.offsetTop - (container.clientHeight / 2) + (activeItem.offsetHeight / 2);
+
+            // 平滑滚动到目标位置
+            container.scrollTo({
+                top: targetScroll,
+                behavior: 'auto'
+            });
         }
     }, 100);
 }
