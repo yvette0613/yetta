@@ -5145,78 +5145,36 @@ const LKECloudManager = {
     // 你的 Bot AppKey (从 callApi 中提取)
     appKey: "QBHWzqXNdtjWEFYsrGBSHgciopFrvtDCfgNHgmYJzwWZjQLJHwvGiccbuzRsGLtfmGvIBVaHvmdlxbKMBFtgXXjMsNlQOczNPYtxygdGhceoInkcMgDBuMLPeOqrsuIy",
 
-    // 1. 获取上传凭证 (你需要实现这个接口，或者在这里模拟)
-    async getCredential(fileType, isPublic = false) {
-        console.log("正在请求上传凭证...");
+    async uploadToCOS(file, isPublic = false) {
+        console.log("正在通过 ImgBB 上传图片...");
 
+        // ⚠️ 请将下方的 '你的_IMGBB_API_KEY' 替换为你第一步获取的真实 Key
+        const IMGBB_KEY = '你的_IMGBB_API_KEY';
+        const formData = new FormData();
+        formData.append('image', file);
         try {
-            // 🔥 修改这里：把网址换成你 Vercel 的新地址
-            // 如果你是本地开发，可以用 http://localhost:3000/api/credential
-            // 如果已上线，用 https://你的项目名.vercel.app/api/credential
-            const apiUrl = 'https://yetta-neon.vercel.app//api/credential';
-
-            const response = await fetch(apiUrl, {
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    fileType: fileType,
-                    isPublic: isPublic
-                })
+                body: formData
             });
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error("凭证获取失败: " + errText);
-            }
             const data = await response.json();
-            return data;
+            if (!data.success) {
+                throw new Error('图床上传失败: ' + (data.error ? data.error.message : '未知错误'));
+            }
+            console.log("图片上传成功:", data.data.url);
+            // 返回符合原来格式的对象，保证后续代码不报错
+            return {
+                url: data.data.url, // 图片的公网链接
+                // 下面这些字段是为了兼容原来的逻辑，实际上用不到
+                bucket: 'imgbb-public',
+                uploadPath: 'dummy-path',
+                data: { ETag: 'dummy', headers: {} }
+            };
         } catch (e) {
             console.error(e);
-            alert("无法获取上传凭证，请检查 Netlify 配置！");
+            alert("图片上传失败，请检查网络或 API Key");
             throw e;
         }
-    },
-    // 2. 上传文件到 COS
-    async uploadToCOS(file, isPublic = false) {
-        // A. 获取凭证
-        const fileType = file.name.split('.').pop();
-        const credData = await this.getCredential(fileType, isPublic);
-        const {TmpSecretId, TmpSecretKey, Token, Bucket, Region, UploadPath} = credData;
-
-        // B. 初始化 COS 实例
-        const cos = new COS({
-            getAuthorization: function (options, callback) {
-                callback({
-                    TmpSecretId: TmpSecretId,
-                    TmpSecretKey: TmpSecretKey,
-                    SecurityToken: Token,
-                    StartTime: credData.StartTime,
-                    ExpiredTime: credData.ExpiredTime,
-                });
-            }
-        });
-
-        // C. 执行上传
-        return new Promise((resolve, reject) => {
-            cos.putObject({
-                Bucket: Bucket,
-                Region: Region,
-                Key: UploadPath, // 使用凭证返回的路径
-                Body: file,
-            }, function (err, data) {
-                if (err) return reject(err);
-                // 拼接最终访问 URL
-                const fileUrl = `https://${Bucket}.cos.${Region}.myqcloud.com${UploadPath}`;
-                resolve({
-                    url: fileUrl,
-                    data: data, // 包含 ETag 等信息
-                    uploadPath: UploadPath,
-                    bucket: Bucket,
-                    fileSize: file.size
-                });
-            });
-        });
     },
 
     // 3. (仅文档) 调用文档解析接口
