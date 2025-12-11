@@ -4963,9 +4963,10 @@ function closeChat() {
 /**
  * [终极修复版] 调用 API 核心函数
  * 1. 修复 Payload：自动合并用户最后连续发送的多条气泡内容。
- * 2. 修复 回复乱码：正确处理腾讯云的全量流式返回（Snapshot），解决文字重复问题。
+ * 2. 修复 回复乱码：正确处理腾讯云的全量流式返回。
+ * 3. 修复 fileInfos 报错：添加了参数定义。
  */
-async function callApi(messages) {
+async function callApi(messages, fileInfos = []) { // <--- 🔴 核心修复：这里加了 fileInfos 参数
     // 1. 智能判断当前联系人
     const targetContact = currentSweetheartChatContact || currentChatContact || {
         name: "AI助手",
@@ -4976,7 +4977,6 @@ async function callApi(messages) {
     const getDeviceId = () => {
         let did = localStorage.getItem('yetta_device_id');
         if (!did) {
-            // 如果本地没有，就生成一个随机字符串并存起来
             did = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
             localStorage.setItem('yetta_device_id', did);
         }
@@ -4984,7 +4984,7 @@ async function callApi(messages) {
     };
     const deviceId = getDeviceId();
 
-    // 2. 辅助函数：ID 清洗 (符合 API 规范)
+    // 2. 辅助函数：ID 清洗
     const sanitizeId = (id) => {
         let str = String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
         if (str.length < 2) str = str.padEnd(2, '_');
@@ -4996,19 +4996,16 @@ async function callApi(messages) {
     const requestId = "req_" + Date.now().toString(36);
     const rawSessionId = `${targetContact.id}_${deviceId}`;
     const apiSessionId = sanitizeId(rawSessionId);
-    // (可选) 同时也让 visitor_id 唯一，确保用户画像隔离
     const apiVisitorId = `user_${deviceId}`;
 
     // ==========================================================
-    // 🔥 核心逻辑修改 A：合并用户连续气泡 & 构建历史
+    // 🔥 核心逻辑：合并用户连续气泡 & 构建历史
     // ==========================================================
 
     let systemRoleText = "";
     let historyText = "";
-    let currentPayloadContentParts = []; // 用于收集最后连续的用户发言
+    let currentPayloadContentParts = [];
 
-    // 步骤 A: 找到“当前轮次”的分割点
-    // 从后往前找，找到第一个不是 'user' 的消息索引（比如上次 AI 的回复）
     let lastNonUserIndex = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
         if (messages[i].role !== 'user') {
@@ -5017,28 +5014,22 @@ async function callApi(messages) {
         }
     }
 
-    // 步骤 B: 遍历消息数组进行分流
     messages.forEach((msg, index) => {
-        // --- 情况 1: 系统提示词 (System Prompt) ---
         if (msg.role === 'system') {
             systemRoleText += msg.content + "\n\n";
         }
-        // --- 情况 2: 这是最后连续的用户消息 (合并到 payload.content) ---
         else if (index > lastNonUserIndex) {
-            // 提取文本内容（兼容纯文本和多模态数组）
             let textPart = "";
             if (typeof msg.content === 'string') {
                 textPart = msg.content;
             } else if (Array.isArray(msg.content)) {
                 msg.content.forEach(item => {
                     if (item.type === 'text') textPart += item.text;
-                    // 如果有图片链接，也可以拼接到这里
                     if (item.type === 'image_url') textPart += `\n![]( ${item.image_url.url} )\n`;
                 });
             }
             if (textPart) currentPayloadContentParts.push(textPart);
         }
-        // --- 情况 3: 这是以前的历史对话 (放入 system_role 做背景) ---
         else {
             const roleName = msg.role === 'user' ? '用户' : '你';
             let cleanContent = "";
@@ -5051,31 +5042,26 @@ async function callApi(messages) {
         }
     });
 
-    // 步骤 C: 合并当前的 payload content
-    // 用换行符连接用户发的多条消息，这样 AI 会把它们当成一整句话处理
     let finalQueryContent = currentPayloadContentParts.join("\n");
     if (!finalQueryContent.trim()) finalQueryContent = " ";
 
-    // 步骤 D: 将历史记录追加到 system_role
     if (historyText) {
         systemRoleText += `\n\n【对话历史回顾 (Context)】\n---\n${historyText}\n---\n`;
     }
 
-    // 截断防止超长
     if (systemRoleText.length > 12000) systemRoleText = systemRoleText.substring(0, 12000);
 
     // 4. 构造 Payload
     const payload = {
-        // ⚠️ 请确认使用你的真实 Key
+        // ⚠️ 请确认使用你的真实 Key (这里保留你原来的Key)
         "bot_app_key": "QBHWzqXNdtjWEFYsrGBSHgciopFrvtDCfgNHgmYJzwWZjQLJHwvGiccbuzRsGLtfmGvIBVaHvmdlxbKMBFtgXXjMsNlQOczNPYtxygdGhceoInkcMgDBuMLPeOqrsuIy",
-        "content": finalQueryContent, // ✅ 这里现在是合并后的完整内容
+        "content": finalQueryContent,
         "session_id": apiSessionId,
         "visitor_biz_id": apiVisitorId,
         "request_id": requestId,
         "system_role": systemRoleText,
-        "stream": "enable", // 保持流式开启
-        // 🔥 新增：传递文档信息
-        "file_infos": fileInfos
+        "stream": "enable",
+        "file_infos": fileInfos // <--- 现在这个变量有定义了
     };
 
     console.log(`🤖 API 请求合并内容:`, finalQueryContent);
@@ -5091,10 +5077,6 @@ async function callApi(messages) {
             const errorText = await response.text();
             throw new Error(`HTTP error ${response.status}: ${errorText}`);
         }
-
-        // ==========================================================
-        // 🔥 核心逻辑修改 B：正确处理流式 Snapshot (修复乱码)
-        // ==========================================================
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
@@ -5116,22 +5098,16 @@ async function callApi(messages) {
 
                     try {
                         const data = JSON.parse(jsonStr);
-
-                        // ✅ FIX: 你的日志显示 API 返回的是 content 全量覆盖（"你是" -> "你是想" -> "你是想要"）
-                        // 所以这里必须用 (=) 赋值，而不能用 (+=) 累加
                         if (data.type === 'reply' && data.payload && data.payload.content) {
-                            fullReply = data.payload.content; // 直接覆盖，修复重复字问题
+                            fullReply = data.payload.content;
                         } else if (data.type === 'error') {
                             return {success: false, message: `服务返回错误: ${data.error?.message}`};
                         }
-                    } catch (e) {
-                    }
+                    } catch (e) { }
                 }
             }
         }
 
-        // 最终返回完整的 fullReply，由 getAiReply 函数去拆分 ---
-        // 这样就避免了“生成一半就发一句”的问题
         if (fullReply) return {success: true, message: fullReply};
         else return {success: false, message: "AI 没有返回有效内容"};
 
