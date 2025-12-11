@@ -5149,7 +5149,7 @@ const LKECloudManager = {
         console.log("正在通过 ImgBB 上传图片...");
 
         // ⚠️ 请将下方的 '你的_IMGBB_API_KEY' 替换为你第一步获取的真实 Key
-        const IMGBB_KEY = '你的_IMGBB_API_KEY';
+        const IMGBB_KEY = '96f604f762959202f88dc15d6a96d3ba';
         const formData = new FormData();
         formData.append('image', file);
         try {
