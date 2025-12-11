@@ -5147,24 +5147,36 @@ const LKECloudManager = {
 
     // 1. 获取上传凭证 (你需要实现这个接口，或者在这里模拟)
     async getCredential(fileType, isPublic = false) {
-        // 🚨 真实场景：请请求你的后端服务器获取这些敏感信息
-        // 文档中提到的接口：DescribeStorageCredential
-        // 这里演示如果无法请求后端，你可能需要手动填入临时的测试 Token
-        // 下面是一个模拟的结构，请替换为你实际获取凭证的逻辑
-
         console.log("正在请求上传凭证...");
-        // 假设你有一个后端接口
-        /*
-        const res = await fetch('/api/get-cos-credential', {
-            method: 'POST',
-            body: JSON.stringify({ fileType, isPublic, botAppKey: this.appKey })
-        });
-        return await res.json();
-        */
 
-        throw new Error("请先配置后端接口以获取腾讯云 COS 临时密钥 (DescribeStorageCredential)");
+        try {
+            // 🔥 修改这里：把网址换成你 Vercel 的新地址
+            // 如果你是本地开发，可以用 http://localhost:3000/api/credential
+            // 如果已上线，用 https://你的项目名.vercel.app/api/credential
+            const apiUrl = 'https://yetta-neon.vercel.app//api/credential';
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fileType: fileType,
+                    isPublic: isPublic
+                })
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error("凭证获取失败: " + errText);
+            }
+            const data = await response.json();
+            return data;
+        } catch (e) {
+            console.error(e);
+            alert("无法获取上传凭证，请检查 Netlify 配置！");
+            throw e;
+        }
     },
-
     // 2. 上传文件到 COS
     async uploadToCOS(file, isPublic = false) {
         // A. 获取凭证
