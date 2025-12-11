@@ -1794,332 +1794,334 @@
                     </div>
                 </div>
             </div>
-            <!-- ========== 分组管理 - 结束 ========== -->
+        </div>
+        <!-- ========== 分组管理 - 结束 ========== -->
 
 
-            <!-- ========== 1. 小说书架页面 (新增) ========== -->
-            <div class="novel-shelf-page" id="novelShelfPage">
-                <div class="settings-header">
-                    <div class="back-btn" onclick="closeNovelShelf()">←</div>
-                    <div class="settings-title">我的书架</div>
-                    <!-- 右上角加号，用于上传 -->
-                    <div class="add-contact-btn" onclick="triggerNovelUpload()">+</div>
-                </div>
-
-                <div class="novel-shelf-content" id="novelShelfContent">
-                    <!-- 小说列表将在这里动态生成 -->
-                </div>
-
-                <!-- 隐藏的文件输入框 -->
-                <input type="file" id="novelFileInput" accept=".txt" style="display: none;"
-                       onchange="handleNovelFileSelect(event)">
+        <!-- ========== 1. 小说书架页面 (新增) ========== -->
+        <div class="novel-shelf-page" id="novelShelfPage">
+            <div class="settings-header">
+                <div class="back-btn" onclick="closeNovelShelf()">←</div>
+                <div class="settings-title">我的书架</div>
+                <!-- 右上角加号，用于上传 -->
+                <div class="add-contact-btn" onclick="triggerNovelUpload()">+</div>
             </div>
 
-            <!-- ========== 2. 小说阅读页面 (高仿 UI 版) ========== -->
-            <div class="novel-reader-page" id="novelReaderPage">
+            <div class="novel-shelf-content" id="novelShelfContent">
+                <!-- 小说列表将在这里动态生成 -->
+            </div>
 
-                <!-- 顶部：章节标题 (点击中间时显示/隐藏) -->
-                <div class="reader-header-bar hidden" id="readerHeaderBar">
-                    <div class="back-btn-text" onclick="closeNovelReader()">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-                        </svg>
-                        <span id="headerTitle">Loading...</span>
-                    </div>
+            <!-- 隐藏的文件输入框 -->
+            <input type="file" id="novelFileInput" accept=".txt" style="display: none;"
+                   onchange="handleNovelFileSelect(event)">
+        </div>
+
+        <!-- ========== 2. 小说阅读页面 (高仿 UI 版) ========== -->
+        <div class="novel-reader-page" id="novelReaderPage">
+
+            <!-- 顶部：章节标题 (点击中间时显示/隐藏) -->
+            <div class="reader-header-bar hidden" id="readerHeaderBar">
+                <div class="back-btn-text" onclick="closeNovelReader()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                    </svg>
+                    <span id="headerTitle">Loading...</span>
                 </div>
+            </div>
 
-                <!-- 核心阅读区 -->
-                <div class="reader-container" id="readerContainer" onclick="handleReaderClick(event)">
-                    <div id="readerContent">
-                        <!-- 文字将注入到这里 -->
-                    </div>
+            <!-- 核心阅读区 -->
+            <div class="reader-container" id="readerContainer" onclick="handleReaderClick(event)">
+                <div id="readerContent">
+                    <!-- 文字将注入到这里 -->
                 </div>
+            </div>
 
-                <!-- 底部系统栏 (固定显示) -->
-                <div class="reader-system-bar">
-                    <span class="reader-progress" id="readerProgress">0 / 0</span>
-                    <div class="reader-sys-right">
-                        <span id="readerTime">19:05</span>
-                        <div class="reader-battery">
-                            <div class="reader-battery-level"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 底部浮动菜单 (已修改：加入目录按钮) -->
-                <div class="reader-float-menu hidden" id="readerFloatMenu">
-                    <div class="menu-pill-btn left" onclick="openChapterList()">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-                        </svg>
-                        目录
-                    </div>
-                    <div class="menu-pill-divider"></div>
-
-                    <div class="menu-pill-btn right" id="novelTtsBtn" onclick="toggleNovelTts()">
-                        <svg id="novelTtsIcon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                            <path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/>
-                        </svg>
-                        <span id="novelTtsText">听书</span>
-                    </div>
-                </div>
-                <!-- ▼▼▼ 新增：目录弹窗列表 ▼▼▼ -->
-                <div class="chapter-list-panel" id="chapterListPanel">
-                    <div class="chapter-list-header">
-                        <div class="chapter-list-title">目录</div>
-                        <div class="chapter-list-close" onclick="closeChapterList()">关闭</div>
-                    </div>
-                    <div class="chapter-list-container" id="chapterListContent">
-                        <!-- JS 动态生成章节列表 -->
+            <!-- 底部系统栏 (固定显示) -->
+            <div class="reader-system-bar">
+                <span class="reader-progress" id="readerProgress">0 / 0</span>
+                <div class="reader-sys-right">
+                    <span id="readerTime">19:05</span>
+                    <div class="reader-battery">
+                        <div class="reader-battery-level"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- ========== 新增：记账本页面 (完整修复版) ========== -->
-            <div class="ledger-page" id="ledgerPage">
-                <div class="test-header">
-                    <div class="back-btn" onclick="closeLedger()">←</div>
-                    <div class="test-title">小猫账本</div>
-                    <!-- 占位符，保持标题居中 -->
-                    <div class="add-contact-btn" style="opacity: 0; pointer-events: none;">+</div>
+            <!-- 底部浮动菜单 (已修改：加入目录按钮) -->
+            <div class="reader-float-menu hidden" id="readerFloatMenu">
+                <div class="menu-pill-btn left" onclick="openChapterList()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                    目录
                 </div>
+                <div class="menu-pill-divider"></div>
 
-                <!-- 1. 顶部：资产卡片 & AI开关 -->
-                <div class="ledger-summary-card">
-                    <div class="ledger-header-row">
-                        <div class="ledger-month-selector">
-                            <span id="ledgerCurrentMonth">--月</span>
-                            <!-- 切换视图按钮 -->
-                            <span class="ledger-toggle-mode" onclick="toggleLedgerMode()">切换列表 📝</span>
-                        </div>
-                        <!-- AI模式切换开关 -->
-                        <div class="ledger-ai-switch" onclick="toggleLedgerAiMode()">
-                            <span class="ai-switch-label">✨ AI 记账</span>
-                            <div class="ai-toggle-btn" id="ledgerAiToggle">
-                                <div class="ai-toggle-circle"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="ledger-stats-row">
-                        <div class="stat-item">
-                            <span class="stat-label">收入</span>
-                            <span class="stat-num income" id="statIncome">0.00</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">支出</span>
-                            <span class="stat-num expense" id="statExpense">0.00</span>
-                        </div>
-                    </div>
-                    <div class="ledger-balance">
-                        <span>结余</span>
-                        <span id="statBalance">0.00</span>
-                    </div>
+                <div class="menu-pill-btn right" id="novelTtsBtn" onclick="toggleNovelTts()">
+                    <svg id="novelTtsIcon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                        <path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/>
+                    </svg>
+                    <span id="novelTtsText">听书</span>
                 </div>
+            </div>
+            <!-- ▼▼▼ 新增：目录弹窗列表 ▼▼▼ -->
+            <div class="chapter-list-panel" id="chapterListPanel">
+                <div class="chapter-list-header">
+                    <div class="chapter-list-title">目录</div>
+                    <div class="chapter-list-close" onclick="closeChapterList()">关闭</div>
+                </div>
+                <div class="chapter-list-container" id="chapterListContent">
+                    <!-- JS 动态生成章节列表 -->
+                </div>
+            </div>
+        </div>
+    
 
-                <!-- 2. 模式一：对话记账区 (包含消息列表 + 底部输入框) -->
-                <!-- ⚠️ 之前可能缺失了这一部分 -->
-                <div class="ledger-content-area" id="ledgerChatMode">
+        <!-- ========== 新增：记账本页面 (完整修复版) ========== -->
+        <div class="ledger-page" id="ledgerPage">
+            <div class="test-header">
+                <div class="back-btn" onclick="closeLedger()">←</div>
+                <div class="test-title">小猫账本</div>
+                <!-- 占位符，保持标题居中 -->
+                <div class="add-contact-btn" style="opacity: 0; pointer-events: none;">+</div>
+            </div>
 
-                    <!-- 消息列表 -->
-                    <div class="ledger-chat-list" id="ledgerChatList">
-                        <div class="ledger-system-msg">喵~ 发送“项目 金额”或者上传小票照片，我帮你记账哦！💰</div>
+            <!-- 1. 顶部：资产卡片 & AI开关 -->
+            <div class="ledger-summary-card">
+                <div class="ledger-header-row">
+                    <div class="ledger-month-selector">
+                        <span id="ledgerCurrentMonth">--月</span>
+                        <!-- 切换视图按钮 -->
+                        <span class="ledger-toggle-mode" onclick="toggleLedgerMode()">切换列表 📝</span>
                     </div>
-                    <!-- 底部输入栏 -->
-                    <div class="ledger-input-bar">
-                        <div class="ledger-upload-btn" onclick="triggerLedgerImage()">📷
-                            <input type="file" id="ledgerMsgImageInput" accept="image/*" style="display: none;"
-                                   onchange="handleLedgerImage(event)">
+                    <!-- AI模式切换开关 -->
+                    <div class="ledger-ai-switch" onclick="toggleLedgerAiMode()">
+                        <span class="ai-switch-label">✨ AI 记账</span>
+                        <div class="ai-toggle-btn" id="ledgerAiToggle">
+                            <div class="ai-toggle-circle"></div>
                         </div>
-                        <input type="text" id="ledgerInput" placeholder="例如：喝奶茶 25">
-                        <button class="ledger-send-btn" onclick="sendLedgerMessage()">记一笔</button>
                     </div>
                 </div>
-
-
-                <!-- 模式二：明细列表区 (默认隐藏) -->
-                <div class="ledger-content-area hidden" id="ledgerListMode">
-                    <div class="ledger-list-container" id="ledgerListContainer">
-                        <!-- 动态生成 -->
+                <div class="ledger-stats-row">
+                    <div class="stat-item">
+                        <span class="stat-label">收入</span>
+                        <span class="stat-num income" id="statIncome">0.00</span>
                     </div>
+                    <div class="stat-item">
+                        <span class="stat-label">支出</span>
+                        <span class="stat-num expense" id="statExpense">0.00</span>
+                    </div>
+                </div>
+                <div class="ledger-balance">
+                    <span>结余</span>
+                    <span id="statBalance">0.00</span>
                 </div>
             </div>
 
-            <!-- 1. 发红包的弹窗 -->
-            <div class="modal-overlay" id="redPacketModal">
-                <div class="red-packet-creator">
-                    <div class="rp-creator-header">
-                        <span class="rp-creator-close" onclick="closeRedPacketModal()">✕</span>
-                        <span class="rp-creator-title">发红包</span>
-                    </div>
-                    <div class="rp-creator-body">
-                        <div class="rp-amount-field">
-                            <span class="rp-amount-label">金额</span>
-                            <input type="number" id="rpAmountInput" class="rp-amount-input" placeholder="0.00">
-                            <span class="rp-amount-unit">元</span>
-                        </div>
-                        <div class="rp-greeting-field">
-                            <input type="text" id="rpGreetingInput" class="rp-greeting-input"
-                                   placeholder="恭喜发财，大吉大利！">
-                        </div>
-                    </div>
-                    <div class="rp-creator-footer">
-                        <div class="rp-display-amount">￥<span id="rpDisplayAmount">0.00</span></div>
-                        <button id="rpSendBtn" class="rp-send-btn disabled" onclick="sendRedPacket()">塞钱进红包
-                        </button>
-                    </div>
+            <!-- 2. 模式一：对话记账区 (包含消息列表 + 底部输入框) -->
+            <!-- ⚠️ 之前可能缺失了这一部分 -->
+            <div class="ledger-content-area" id="ledgerChatMode">
+
+                <!-- 消息列表 -->
+                <div class="ledger-chat-list" id="ledgerChatList">
+                    <div class="ledger-system-msg">喵~ 发送“项目 金额”或者上传小票照片，我帮你记账哦！💰</div>
                 </div>
-            </div>
-            <!-- 2. 开红包的动画弹窗 -->
-            <div class="modal-overlay" id="redPacketOpenModal">
-                <div class="rp-opener-backdrop" onclick="closeRedPacketOpener()"></div>
-                <div class="rp-opener-card" id="rpOpenerCard">
-                    <!-- 红包封面 (未打开时) -->
-                    <div class="rp-cover">
-                        <div class="rp-sender-info">
-                            <div class="rp-sender-avatar" id="rpOpenerAvatar"></div>
-                            <div class="rp-sender-name" id="rpOpenerSenderName"></div>
-                        </div>
-                        <div class="rp-greeting" id="rpOpenerGreeting"></div>
-                        <div class="rp-open-btn-wrapper">
-                            <div class="rp-open-btn" id="rpOpenBtn" onclick="animateAndOpenPacket()">开</div>
-                        </div>
+                <!-- 底部输入栏 -->
+                <div class="ledger-input-bar">
+                    <div class="ledger-upload-btn" onclick="triggerLedgerImage()">📷
+                        <input type="file" id="ledgerMsgImageInput" accept="image/*" style="display: none;"
+                               onchange="handleLedgerImage(event)">
                     </div>
-                    <!-- 红包详情 (打开后) -->
-                    <div class="rp-details">
-                        <div class="rp-details-amount"><span id="rpOpenedAmount"></span><span> 元</span></div>
-                        <div class="rp-details-greeting" id="rpOpenedGreeting"></div>
-                        <div class="rp-details-tip">已存入零钱</div>
-                    </div>
+                    <input type="text" id="ledgerInput" placeholder="例如：喝奶茶 25">
+                    <button class="ledger-send-btn" onclick="sendLedgerMessage()">记一笔</button>
                 </div>
             </div>
 
-            <!-- ▼▼▼ 在这里粘贴新增的错误提示框HTML ▼▼▼ -->
-            <div class="modal-overlay error-modal" id="errorModal">
-                <div class="modal-content">
-                    <div class="error-icon">⚠️</div>
-                    <h3 id="errorModalTitle">操作失败</h3>
-                    <p id="errorModalMessage">出现未知错误。</p>
+
+            <!-- 模式二：明细列表区 (默认隐藏) -->
+            <div class="ledger-content-area hidden" id="ledgerListMode">
+                <div class="ledger-list-container" id="ledgerListContainer">
+                    <!-- 动态生成 -->
                 </div>
             </div>
-            <!-- ========== 新增：剧情讨论临时弹窗 ========== -->
-            <div class="modal-overlay" id="discussModal">
-                <div class="discuss-card">
-                    <div class="discuss-header">
-                        <div class="discuss-title">剧情讨论中...</div>
-                        <button class="discuss-close-btn" onclick="closeDiscussModal()">收起</button>
-                    </div>
+        </div>
 
-                    <!-- 聊天区域 -->
-                    <div class="discuss-messages" id="discussMessages">
-                        <!-- 消息会动态插入这里 -->
+        <!-- 1. 发红包的弹窗 -->
+        <div class="modal-overlay" id="redPacketModal">
+            <div class="red-packet-creator">
+                <div class="rp-creator-header">
+                    <span class="rp-creator-close" onclick="closeRedPacketModal()">✕</span>
+                    <span class="rp-creator-title">发红包</span>
+                </div>
+                <div class="rp-creator-body">
+                    <div class="rp-amount-field">
+                        <span class="rp-amount-label">金额</span>
+                        <input type="number" id="rpAmountInput" class="rp-amount-input" placeholder="0.00">
+                        <span class="rp-amount-unit">元</span>
                     </div>
-
-                    <!-- 输入区域 -->
-                    <div class="discuss-input-area">
-                        <input type="text" id="discussInput" placeholder="输入想法...">
-                        <button class="discuss-send-btn" onclick="sendDiscussMessage()">发送</button>
+                    <div class="rp-greeting-field">
+                        <input type="text" id="rpGreetingInput" class="rp-greeting-input"
+                               placeholder="恭喜发财，大吉大利！">
                     </div>
+                </div>
+                <div class="rp-creator-footer">
+                    <div class="rp-display-amount">￥<span id="rpDisplayAmount">0.00</span></div>
+                    <button id="rpSendBtn" class="rp-send-btn disabled" onclick="sendRedPacket()">塞钱进红包
+                    </button>
                 </div>
             </div>
-            <!-- ========== 缺失的：联系人库统一角色卡弹窗 ========== -->
-            <div class="library-character-modal" id="libraryCharacterModal">
-                <div class="library-modal-backdrop" onclick="closeLibraryCharacterModal()"></div>
-                <div class="library-character-card">
-                    <div class="library-card-header">
-                        <div class="library-card-title">编辑联系人</div>
-                        <button class="library-close-btn" onclick="closeLibraryCharacterModal()">×</button>
+        </div>
+        <!-- 2. 开红包的动画弹窗 -->
+        <div class="modal-overlay" id="redPacketOpenModal">
+            <div class="rp-opener-backdrop" onclick="closeRedPacketOpener()"></div>
+            <div class="rp-opener-card" id="rpOpenerCard">
+                <!-- 红包封面 (未打开时) -->
+                <div class="rp-cover">
+                    <div class="rp-sender-info">
+                        <div class="rp-sender-avatar" id="rpOpenerAvatar"></div>
+                        <div class="rp-sender-name" id="rpOpenerSenderName"></div>
                     </div>
-
-                    <div class="library-card-content">
-                        <!-- 头像与核心信息 -->
-                        <div class="library-section library-avatar-row">
-                            <div class="library-avatar" onclick="openLibraryAvatarPicker()">
-                                <img id="library-avatar-preview" src="" alt="Avatar">
-                                <div class="library-avatar-overlay">更换</div>
-                            </div>
-                            <div class="library-basic-info">
-                                <div class="library-id-display">ID: <span id="library-instance-id">--</span></div>
-                                <div>
-                                    <label class="library-label-sm">姓名</label>
-                                    <input type="text" id="library-name" class="library-input" placeholder="角色姓名">
-                                </div>
-                            </div>
-                        </div>
-                        <!-- 基础设定 -->
-                        <div class="library-section">
-                            <label class="library-label">基础设定 (Persona)</label>
-                            <textarea id="library-persona" class="library-textarea" rows="3"
-                                      placeholder="角色的简短描述..."></textarea>
-                        </div>
-
-                        <!-- 语音ID设置 -->
-                        <div class="library-section">
-                            <label class="voice-setting-label">🔊 语音ID</label>
-                            <input type="text" id="library-voice-id" class="voice-setting-input"
-                                   placeholder="例如: female-qn-yuxin">
-                        </div>
-
-                        <!-- 扩展信息折叠区 -->
-                        <div class="library-section">
-                            <div class="library-toggle-header" onclick="toggleLibraryExtendedFields()">
-                                <span class="library-label" style="margin:0">✨ 详细设定 (性格/经历)</span>
-                                <span class="library-toggle-arrow" id="library-extended-arrow">▼</span>
-                            </div>
-                            <div class="library-extended-fields" id="library-extended-fields" style="display: none;">
-                                <div class="library-field"><input type="text" id="library-personality"
-                                                                  class="library-input"
-                                                                  placeholder="性格"></div>
-                                <div class="library-field"><input type="text" id="library-occupation"
-                                                                  class="library-input"
-                                                                  placeholder="职业"></div>
-                                <div class="library-field"><input type="text" id="library-catchphrase"
-                                                                  class="library-input"
-                                                                  placeholder="口头禅"></div>
-                                <div class="library-field"><input type="text" id="library-relationship"
-                                                                  class="library-input"
-                                                                  placeholder="与我的关系"></div>
-                                <div class="library-field"><textarea id="library-history" class="library-textarea"
-                                                                     rows="2"
-                                                                     placeholder="过往经历..."></textarea></div>
-                            </div>
-                        </div>
-                        <!-- 世界书绑定 (可折叠) -->
-                        <div class="library-section">
-                            <div class="library-toggle-header" onclick="toggleLibraryWorldbooks()">
-                                <span class="library-label" style="margin:0">📚 绑定的世界书</span>
-                                <span class="library-toggle-arrow" id="library-wb-arrow">▼</span>
-                            </div>
-                            <div class="library-worldbooks-list" id="library-worldbooks-list" style="display: none;">
-                                <!-- JS动态生成 -->
-                            </div>
-                        </div>
-                        <!-- 面具绑定 (可折叠) -->
-                        <div class="library-section">
-                            <div class="library-toggle-header" onclick="toggleLibraryMasks()">
-                                <span class="library-label" style="margin:0">🎭 绑定的面具</span>
-                                <span class="library-toggle-arrow" id="library-mask-arrow">▼</span>
-                            </div>
-                            <div class="library-masks-list" id="library-masks-list" style="display: none;">
-                                <!-- JS动态生成 -->
-                            </div>
-                        </div>
+                    <div class="rp-greeting" id="rpOpenerGreeting"></div>
+                    <div class="rp-open-btn-wrapper">
+                        <div class="rp-open-btn" id="rpOpenBtn" onclick="animateAndOpenPacket()">开</div>
                     </div>
-
-                    <div class="library-card-footer">
-                        <button class="library-btn library-btn-cancel" onclick="closeLibraryCharacterModal()">取消
-                        </button>
-                        <button class="library-btn library-btn-save" onclick="saveLibraryCharacter()">保存</button>
-                    </div>
-
-                    <!-- 隐藏的文件输入框 (解决报错的关键) -->
-                    <input type="file" id="library-avatar-input" accept="image/*" style="display: none;">
                 </div>
+                <!-- 红包详情 (打开后) -->
+                <div class="rp-details">
+                    <div class="rp-details-amount"><span id="rpOpenedAmount"></span><span> 元</span></div>
+                    <div class="rp-details-greeting" id="rpOpenedGreeting"></div>
+                    <div class="rp-details-tip">已存入零钱</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ▼▼▼ 在这里粘贴新增的错误提示框HTML ▼▼▼ -->
+        <div class="modal-overlay error-modal" id="errorModal">
+            <div class="modal-content">
+                <div class="error-icon">⚠️</div>
+                <h3 id="errorModalTitle">操作失败</h3>
+                <p id="errorModalMessage">出现未知错误。</p>
+            </div>
+        </div>
+        <!-- ========== 新增：剧情讨论临时弹窗 ========== -->
+        <div class="modal-overlay" id="discussModal">
+            <div class="discuss-card">
+                <div class="discuss-header">
+                    <div class="discuss-title">剧情讨论中...</div>
+                    <button class="discuss-close-btn" onclick="closeDiscussModal()">收起</button>
+                </div>
+
+                <!-- 聊天区域 -->
+                <div class="discuss-messages" id="discussMessages">
+                    <!-- 消息会动态插入这里 -->
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="discuss-input-area">
+                    <input type="text" id="discussInput" placeholder="输入想法...">
+                    <button class="discuss-send-btn" onclick="sendDiscussMessage()">发送</button>
+                </div>
+            </div>
+        </div>
+        <!-- ========== 缺失的：联系人库统一角色卡弹窗 ========== -->
+        <div class="library-character-modal" id="libraryCharacterModal">
+            <div class="library-modal-backdrop" onclick="closeLibraryCharacterModal()"></div>
+            <div class="library-character-card">
+                <div class="library-card-header">
+                    <div class="library-card-title">编辑联系人</div>
+                    <button class="library-close-btn" onclick="closeLibraryCharacterModal()">×</button>
+                </div>
+
+                <div class="library-card-content">
+                    <!-- 头像与核心信息 -->
+                    <div class="library-section library-avatar-row">
+                        <div class="library-avatar" onclick="openLibraryAvatarPicker()">
+                            <img id="library-avatar-preview" src="" alt="Avatar">
+                            <div class="library-avatar-overlay">更换</div>
+                        </div>
+                        <div class="library-basic-info">
+                            <div class="library-id-display">ID: <span id="library-instance-id">--</span></div>
+                            <div>
+                                <label class="library-label-sm">姓名</label>
+                                <input type="text" id="library-name" class="library-input" placeholder="角色姓名">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 基础设定 -->
+                    <div class="library-section">
+                        <label class="library-label">基础设定 (Persona)</label>
+                        <textarea id="library-persona" class="library-textarea" rows="3"
+                                  placeholder="角色的简短描述..."></textarea>
+                    </div>
+
+                    <!-- 语音ID设置 -->
+                    <div class="library-section">
+                        <label class="voice-setting-label">🔊 语音ID</label>
+                        <input type="text" id="library-voice-id" class="voice-setting-input"
+                               placeholder="例如: female-qn-yuxin">
+                    </div>
+
+                    <!-- 扩展信息折叠区 -->
+                    <div class="library-section">
+                        <div class="library-toggle-header" onclick="toggleLibraryExtendedFields()">
+                            <span class="library-label" style="margin:0">✨ 详细设定 (性格/经历)</span>
+                            <span class="library-toggle-arrow" id="library-extended-arrow">▼</span>
+                        </div>
+                        <div class="library-extended-fields" id="library-extended-fields" style="display: none;">
+                            <div class="library-field"><input type="text" id="library-personality"
+                                                              class="library-input"
+                                                              placeholder="性格"></div>
+                            <div class="library-field"><input type="text" id="library-occupation"
+                                                              class="library-input"
+                                                              placeholder="职业"></div>
+                            <div class="library-field"><input type="text" id="library-catchphrase"
+                                                              class="library-input"
+                                                              placeholder="口头禅"></div>
+                            <div class="library-field"><input type="text" id="library-relationship"
+                                                              class="library-input"
+                                                              placeholder="与我的关系"></div>
+                            <div class="library-field"><textarea id="library-history" class="library-textarea"
+                                                                 rows="2"
+                                                                 placeholder="过往经历..."></textarea></div>
+                        </div>
+                    </div>
+                    <!-- 世界书绑定 (可折叠) -->
+                    <div class="library-section">
+                        <div class="library-toggle-header" onclick="toggleLibraryWorldbooks()">
+                            <span class="library-label" style="margin:0">📚 绑定的世界书</span>
+                            <span class="library-toggle-arrow" id="library-wb-arrow">▼</span>
+                        </div>
+                        <div class="library-worldbooks-list" id="library-worldbooks-list" style="display: none;">
+                            <!-- JS动态生成 -->
+                        </div>
+                    </div>
+                    <!-- 面具绑定 (可折叠) -->
+                    <div class="library-section">
+                        <div class="library-toggle-header" onclick="toggleLibraryMasks()">
+                            <span class="library-label" style="margin:0">🎭 绑定的面具</span>
+                            <span class="library-toggle-arrow" id="library-mask-arrow">▼</span>
+                        </div>
+                        <div class="library-masks-list" id="library-masks-list" style="display: none;">
+                            <!-- JS动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="library-card-footer">
+                    <button class="library-btn library-btn-cancel" onclick="closeLibraryCharacterModal()">取消
+                    </button>
+                    <button class="library-btn library-btn-save" onclick="saveLibraryCharacter()">保存</button>
+                </div>
+
+                <!-- 隐藏的文件输入框 (解决报错的关键) -->
+                <input type="file" id="library-avatar-input" accept="image/*" style="display: none;">
             </div>
         </div>
     </div>
 </div>
-    <!-- 2. 引入外部的JavaScript文件 (defer属性确保HTML解析完再执行) -->
-    <script src="script.js" defer></script>
+
+<!-- 2. 引入外部的JavaScript文件 (defer属性确保HTML解析完再执行) -->
+<script src="script.js" defer></script>
 
 </body>
 </html>
