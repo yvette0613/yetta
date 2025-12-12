@@ -5646,6 +5646,7 @@ body.code-scrolling-enabled .code-block-wrapper {
     cursor: crosshair;
     /* 移除固定高度，让容器自适应内容 */
     display: inline-block;
+    touch-action: none;
 }
 
 #worldMapImage {
@@ -5679,9 +5680,10 @@ body.code-scrolling-enabled .code-block-wrapper {
     cursor: pointer;
     transform: translate(-50%, -100%);
     transition: transform 0.2s;
-    z-index: 10;
+    z-index: 100;
     user-select: none; /* 防止选中文字 */
     -webkit-user-select: none;
+    touch-action: none;
 }
 
 .map-pin.dragging {
@@ -5689,6 +5691,8 @@ body.code-scrolling-enabled .code-block-wrapper {
     transform: translate(-50%, -100%) scale(1.3);
     z-index: 100;
     transition: none;
+    opacity: 0.9;
+    pointer-events: none; /* 拖拽时忽略自身的点事件，防止闪烁 */
 }
 
 .map-pin:hover:not(.dragging) {
@@ -9554,14 +9558,9 @@ body.code-scrolling-enabled .code-block-wrapper {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
-/* ▼▼▼ 粘贴以下所有CSS代码 ▼▼▼ */
-
-/*
-============================
- 红包功能 - 样式
-============================
-*/
-
+/* ============================
+   红包功能 - 样式 (修复版)
+============================ */
 /* 1. 聊天气泡中的红包样式 */
 .red-packet-bubble {
     background-color: #FA9D3B; /* 微信红包的橙色 */
@@ -9572,8 +9571,9 @@ body.code-scrolling-enabled .code-block-wrapper {
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 220px;
+    min-width: 220px; /* 稍微加宽一点 */
     transition: background-color 0.3s;
+    user-select: none;
 }
 
 .red-packet-bubble.opened {
@@ -9590,6 +9590,7 @@ body.code-scrolling-enabled .code-block-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* 防止文字溢出 */
 }
 
 .red-packet-greeting {
@@ -9605,18 +9606,23 @@ body.code-scrolling-enabled .code-block-wrapper {
     margin-top: 4px;
     padding-top: 4px;
     border-top: 1px solid rgba(255, 255, 255, 0.3);
+    opacity: 0.9;
 }
 
-/* 2. 发红包的弹窗样式 */
+/* ============================
+   红包弹窗样式修正版
+============================ */
+/* 弹窗整体卡片 */
 .red-packet-creator {
-    width: 100%;
-    max-width: 350px;
-    background: #F7F7F7;
+    width: 300px; /* 固定宽度，防止塌陷 */
+    background: #F3F3F3; /* 微信灰背景 */
     border-radius: 12px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
     animation: rpModalIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative; /* 确保定位准确 */
 }
 
 @keyframes rpModalIn {
@@ -9624,20 +9630,24 @@ body.code-scrolling-enabled .code-block-wrapper {
     to { transform: scale(1); opacity: 1; }
 }
 
+/* 红色头部 */
 .rp-creator-header {
+    height: 50px;
+    background: #E55743; /* 经典的红包红 */
+    color: #F8D69A; /* 金色字体 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
-    text-align: center;
-    padding: 16px;
 }
 
 .rp-creator-close {
     position: absolute;
     left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
     font-size: 20px;
-    color: #888;
+    color: #F8D69A; /* 叉号也用金色 */
     cursor: pointer;
+    padding: 10px; /* 增加点击区域 */
 }
 
 .rp-creator-title {
@@ -9647,13 +9657,25 @@ body.code-scrolling-enabled .code-block-wrapper {
 }
 
 .rp-creator-body {
-    padding: 16px;
+    padding: 0; /* 移除内边距，让里面的行贴边 */
     background: white;
+    display: flex;
+    flex-direction: column;
 }
 
+.rp-greeting-field {
+    margin-top: 0; /* 留言框紧贴着也行，或者留一点空隙 */
+    border-top: 1px solid #eee;
+}
+
+/* 输入框行容器 */
 .rp-amount-field, .rp-greeting-field {
-    border-bottom: 1px solid #F0F0F0;
-    padding: 16px 0;
+    background: white;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center; /* 垂直居中 */
+    justify-content: space-between; /* 左右两端对齐 */
+    margin-top: 20px; /* 与上一行的间距 */
 }
 
 .rp-amount-field {
@@ -9665,14 +9687,21 @@ body.code-scrolling-enabled .code-block-wrapper {
 .rp-amount-label {
     font-size: 16px;
     color: #333;
+    font-weight: 500;
+    flex-shrink: 0; /* 防止文字被挤压 */
 }
 
 .rp-amount-input {
-    flex: 1;
+    flex: 1; /* 占据中间剩余空间 */
+    min-width: 0; /* 🔥 关键修复：防止Flex子元素溢出 */
     border: none;
     font-size: 24px;
-    text-align: right;
+    text-align: right; /* 数字靠右 */
     font-weight: bold;
+    color: #333;
+    background: transparent;
+    outline: none;
+    height: 30px;
 }
 .rp-amount-input:focus, .rp-greeting-input:focus {
     outline: none;
@@ -9681,6 +9710,15 @@ body.code-scrolling-enabled .code-block-wrapper {
 .rp-amount-unit {
     font-size: 16px;
     color: #333;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+
+/* 隐藏数字输入框的小箭头 */
+.rp-amount-input::-webkit-outer-spin-button,
+.rp-amount-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .rp-greeting-input {
@@ -9688,22 +9726,32 @@ body.code-scrolling-enabled .code-block-wrapper {
     border: none;
     background: transparent;
     font-size: 15px;
-    padding: 8px 0;
+    color: #333;
+    outline: none;
+}
+
+.rp-greeting-input::placeholder {
+    color: #999;
 }
 
 .rp-creator-footer {
-    padding: 30px 16px;
+    padding: 30px 20px;
     text-align: center;
+    background: #F3F3F3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .rp-display-amount {
     font-size: 40px;
-    font-weight: 300;
-    color: #000;
-    margin-bottom: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 .rp-display-amount span {
-    font-weight: 500;
+    font-family: 'DIN Alternate', sans-serif; /* 尝试用数字字体 */
 }
 
 .rp-send-btn {
@@ -9742,8 +9790,9 @@ body.code-scrolling-enabled .code-block-wrapper {
     z-index: 10;
     width: 280px;
     height: 480px;
-    background: linear-gradient(180deg, #E55845 0%, #D84B38 100%);
-    border-radius: 12px;
+    /* 修正渐变方向 */
+    background: linear-gradient(180deg, #E55743 0%, #D94632 100%);
+    border-radius: 16px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     transform: translateY(-100vh);
@@ -9760,24 +9809,27 @@ body.code-scrolling-enabled .code-block-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px;
+    /* 增加内边距 */
+    padding: 0;
     transition: opacity 0.5s ease;
 }
 
+/* 红包上半圆弧 */
 .rp-cover::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
-    height: 120px;
-    background: linear-gradient(180deg, #D4422D 0%, #D84B38 100%);
-    border-radius: 0 0 50% 50% / 0 0 10% 10%;
+    left: -10%; /* 扩大一点防止边缘漏缝 */
+    width: 120%;
+    height: 100px;
+    background: #D94632; /* 深一点的红色 */
+    border-radius: 0 0 50% 50%;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .rp-sender-info {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -9785,13 +9837,13 @@ body.code-scrolling-enabled .code-block-wrapper {
 }
 
 .rp-sender-avatar {
-    width: 54px; height: 54px;
-    border-radius: 8px;
+    width: 48px; height: 48px;
+    border-radius: 4px;
     background: #fff;
     overflow: hidden;
     margin-bottom: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
 }
-
 .rp-sender-avatar img, .rp-sender-avatar span {
     width: 100%; height: 100%;
     object-fit: cover;
@@ -9802,6 +9854,7 @@ body.code-scrolling-enabled .code-block-wrapper {
 .rp-sender-name {
     font-size: 16px;
     color: #F8D69A;
+    font-weight: 500;
 }
 
 .rp-greeting {
@@ -9813,15 +9866,7 @@ body.code-scrolling-enabled .code-block-wrapper {
     font-weight: 500;
 }
 
-/* 用这段新的CSS替换旧的 .rp-open-btn 样式 */
 .rp-open-btn {
-    position: absolute;      /* 1. 改为绝对定位 */
-    z-index: 20;             /* 2. 赋予一个非常高的层级 */
-    bottom: 90px;            /* 3. 直接定位在底部 */
-    left: 50%;               /* 4. 水平居中 */
-    transform: translateX(-50%); /* 5. 精确水平居中 */
-
-    /* 以下样式保持不变，但为了完整性一并提供 */
     width: 90px;
     height: 90px;
     background: #F8D69A;
@@ -9830,62 +9875,70 @@ body.code-scrolling-enabled .code-block-wrapper {
     align-items: center;
     justify-content: center;
     font-size: 36px;
-    color: #A9622A;
+    color: #333;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.2), inset 0 2px 3px rgba(255,255,255,0.4);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+
+.rp-open-btn:active {
+    transform: scale(0.95);
 }
 
 .rp-open-btn.spinning {
     animation: spin 1s linear infinite;
+    font-size: 0; /* 旋转时隐藏文字 */
 }
-
+/* 旋转时显示一个圈圈，或者整图旋转 */
+.rp-open-btn.spinning::after {
+    content: "开";
+    font-size: 36px;
+}
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(360deg); }
 }
 
 /* 打开后的样式 */
+/* 详情页（打开后的白底页） */
+.rp-details {
+    opacity: 0;
+    background: #F7F7F7;
+    transition-delay: 0.3s;
+    pointer-events: none; /* 未显示时不可点 */
+}
 .rp-opener-card.is-opened .rp-cover {
     opacity: 0;
     pointer-events: none;
 }
 .rp-opener-card.is-opened .rp-details {
     opacity: 1;
+    pointer-events: auto;
 }
-
-.rp-details {
-    opacity: 0;
-    background: #F7F7F7;
-    transition-delay: 0.3s;
-}
-
 .rp-details-amount {
-    margin-top: 80px;
+    margin-top: 100px;
     font-size: 50px;
     font-weight: 500;
-    color: #333;
+    color: #CFB53B; /* 金色或者黑色 */
 }
 .rp-details-amount span:last-child {
-    font-size: 16px;
+    font-size: 14px;
+    color: #333;
     margin-left: 4px;
+    font-weight: normal;
 }
-
 .rp-details-greeting {
-    margin-top: 12px;
-    font-size: 16px;
-    color: #888;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #999;
 }
-
 .rp-details-tip {
     position: absolute;
-    bottom: 24px;
-    font-size: 14px;
-    color: #5583A8;
-    cursor: pointer;
+    bottom: 20px;
+    font-size: 12px;
+    color: #5583A8; /* 链接蓝 */
 }
-
-/* ▲▲▲ CSS代码粘贴结束 ▲▲▲ */
 /* ========== [最高优先级版本] 密友聊天头像显示控制 ========== */
 
 /* 1. 默认隐藏头像和发送者名称（降低优先级，方便被覆盖）*/
@@ -11233,3 +11286,14 @@ body.code-scrolling-enabled .code-block-wrapper {
     100% { box-shadow: 0 0 5px rgba(176, 106, 179, 0.5); }
 }
 
+/* --- 修复测试结果弹窗层级问题 --- */
+#testResultModal {
+    /* 必须比 .test-page (2500) 更高 */
+    z-index: 3000 !important;
+}
+
+/* 确保结果卡片也能正常显示 */
+#testResultModal .test-result-card {
+    position: relative;
+    z-index: 3001;
+}

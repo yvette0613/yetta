@@ -151,6 +151,7 @@ function removeThinkTags(text) {
     if (!text) return "";
     return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 }
+
 /**
  * [终极增强版] 智能 AI 响应解析器
  * 修复：当 JSON 解析失败时，自动切除泄露在界面上的 "status": {...} 代码
@@ -218,6 +219,7 @@ function parseAiJsonResponse(rawMessage) {
         statusData: null
     };
 }
+
 // ================== 地址选择与持久化功能 ==================
 
 // 1. 定义全局变量来存储用户的选择
@@ -1966,15 +1968,15 @@ function hexToUint8Array(hexString) {
     return bytes;
 }
 
-// 【最终健壮版】播放 TTS 消息，已优化全局音频控制
-// 新版本：不再需要 button 参数，使用全局提示框
-// [修改版] 播放 TTS 消息 (统一使用听书声音)
+/**
+ * [已修复透明遮挡BUG] 播放 TTS 消息
+ */
 async function playTtsMessage(sender, contactId, messageIndex, isSweetheart = false) {
     if (currentAudio) {
         currentAudio.pause();
     }
 
-    // 1. 检查配置是否已填写
+    // 1. 检查配置
     if (MINIMAX_CONFIG.API_KEY.includes("YOUR_REAL")) {
         showErrorModal('配置缺失', '请在代码 script.js 顶部的 MINIMAX_CONFIG 中填入真实的 API Key 和 Group ID。');
         return;
@@ -1992,12 +1994,26 @@ async function playTtsMessage(sender, contactId, messageIndex, isSweetheart = fa
     // 2. 统一使用配置中的声音 ID
     const voiceId = MINIMAX_CONFIG.DEFAULT_VOICE_ID;
 
-    // 提取纯文本
+    // 提取纯文本，去除HTML标签
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = message.text;
     const messageText = tempDiv.textContent || tempDiv.innerText;
 
+    // 显示加载提示，设置极长时间防止自动关闭
     showSuccessModal('朗读中...', '正在合成语音...', 99999);
+
+    /* --- 🔥 修复核心：定义正确的关闭弹窗函数 --- */
+    const hideLoadingModal = () => {
+        const modal = document.getElementById('successModal');
+        if (modal) {
+            // 1. 移除动画类，让它变透明
+            modal.classList.remove('show');
+            // 2. 等待CSS过渡动画(0.3s)结束后，彻底隐藏元素，防止挡住点击
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+    };
 
     try {
         const response = await fetch(`${MINIMAX_CONFIG.API_URL}?GroupId=${MINIMAX_CONFIG.GROUP_ID}`, {
@@ -2030,13 +2046,11 @@ async function playTtsMessage(sender, contactId, messageIndex, isSweetheart = fa
         const audio = new Audio(audioObjectUrl);
         currentAudio = audio;
 
-        const hideLoadingModal = () => {
-            const modal = document.getElementById('successModal');
-            if (modal) modal.classList.remove('show');
-        };
-
+        // 开始播放时关闭弹窗
         audio.onplay = hideLoadingModal;
+
         audio.onended = () => {
+            // 播放结束也确保关闭（双重保险）
             hideLoadingModal();
             URL.revokeObjectURL(audioObjectUrl);
             currentAudio = null;
@@ -2050,10 +2064,10 @@ async function playTtsMessage(sender, contactId, messageIndex, isSweetheart = fa
     } catch (error) {
         console.error('朗读失败:', error);
         showErrorModal('朗读失败', error.message);
-        document.getElementById('successModal').classList.remove('show');
+        // 出错时也要确保关闭加载弹窗
+        hideLoadingModal();
     }
 }
-
 
 /**
  * [最终修复版] 为指定消息元素绑定长按和右键菜单事件
@@ -4974,7 +4988,7 @@ function addMessageToList() {
     document.querySelector('.chat-input-area').classList.remove('has-text');
     // 3. 强制把小信封设为可用状态
     const replyBtn = document.getElementById('getReplyBtn');
-    if(replyBtn) {
+    if (replyBtn) {
         replyBtn.style.display = 'flex'; // 确保也是显示的
         replyBtn.disabled = false;
         replyBtn.style.opacity = '1';
@@ -5033,6 +5047,7 @@ ${formattedDialog}
 ---
 `;
 }
+
 /**
  * [终极增强版] 普通聊天 - 获取AI回复
  * 优化：增加对图片消息的强识别逻辑，提高工具调用成功率
@@ -5079,7 +5094,10 @@ async function getAiReply() {
         if (worldbookContext) messages.push({role: "system", content: worldbookContext});
 
         // 角色ID
-        messages.push({role: "system", content: `(System: You are roleplaying as "${currentChatContact.name}". Status: ${currentChatContact.status || 'Friend'})`});
+        messages.push({
+            role: "system",
+            content: `(System: You are roleplaying as "${currentChatContact.name}". Status: ${currentChatContact.status || 'Friend'})`
+        });
 
         // 取最近记录
         // 注意：我们这里不直接 push 到 messages，而是先处理一下
@@ -5136,12 +5154,12 @@ async function getAiReply() {
         if (multimodalMessage) {
             messages.push(multimodalMessage);
             // 清理输入框和状态
-            if(currentUserInput) {
-                 chatInput.value = '';
-                 document.querySelector('.chat-input-area').classList.remove('has-text');
-                 // 还需要把刚才用户打的字上屏（因为刚才并没有上屏，只是在输入框里）
-                 // 但如果是点击“发送”按钮进来的，字已经上屏了。
-                 // 这里为了保险，不做重复上屏，假设用户是通过“发送”->“接收”流程操作的。
+            if (currentUserInput) {
+                chatInput.value = '';
+                document.querySelector('.chat-input-area').classList.remove('has-text');
+                // 还需要把刚才用户打的字上屏（因为刚才并没有上屏，只是在输入框里）
+                // 但如果是点击“发送”按钮进来的，字已经上屏了。
+                // 这里为了保险，不做重复上屏，假设用户是通过“发送”->“接收”流程操作的。
             }
         }
         // 2. 否则，如果有纯文本输入，发送文本
@@ -5187,7 +5205,8 @@ async function getAiReply() {
                 try {
                     const json = JSON.parse(cleanMessage);
                     if (json.reply) cleanMessage = json.reply;
-                } catch(e) {}
+                } catch (e) {
+                }
             }
 
             const segments = cleanMessage.split('---').filter(s => s.trim());
@@ -7303,6 +7322,16 @@ async function getSweetheartAiReply() {
             const role = msg.sender === 'user' ? 'user' : 'assistant';
             let text = msg.text || '';
 
+            // 1. 如果是红包消息，将其转换为 AI 能读懂的文字描述
+            if (msg.type === 'red-packet') {
+                const statusStr = msg.content.status === 'opened' ? '(已被领取)' : '(未领取)';
+                text = `[发送了一个红包] 寄语："${msg.content.greeting}" 金额：${msg.content.amount}元 ${statusStr}`;
+            }
+
+            // 2. 如果是文件/图片消息
+            if (msg.imageUrl && msg.sender === 'user') text = '[图片]';
+            if (msg.type === 'file') text = `[发送文件] ${msg.content.name}`;
+
             // 简单清洗
             text = text.replace(/<render>[\s\S]*?<\/render>/g, '');
             if (msg.imageUrl && msg.sender === 'user') text = '[图片]';
@@ -7369,15 +7398,65 @@ async function getSweetheartAiReply() {
 
             // 简单的渲染函数
             const processSegment = async (segmentText) => {
-                const messageObj = {sender: 'contact', text: segmentText};
+                let messageObj;
+                const trimmed = segmentText.trim();
+                // 1. 检测是否为语音标签：/voice/{...}/
+                // 注意：正则需要匹配开头和结尾的斜杠
+                const voiceMatch = trimmed.match(/^\/voice\/(\{[\s\S]*?\})\/?$/);
+
+                // 2. 检测是否为红包标签：/red-packet/{...}/
+                const rpMatch = trimmed.match(/^\/red-packet\/(\{[\s\S]*?\})\/?$/);
+                if (voiceMatch) {
+                    // === 处理语音 ===
+                    try {
+                        const voiceData = JSON.parse(voiceMatch[1]);
+                        messageObj = {
+                            sender: 'contact',
+                            type: 'voice',
+                            content: {
+                                duration: voiceData.duration,
+                                text: voiceData.text
+                            }
+                        };
+                    } catch (e) {
+                        console.error("解析语音JSON失败", e);
+                        messageObj = {sender: 'contact', text: segmentText}; // 降级为文本
+                    }
+                } else if (rpMatch) {
+                    // === 处理红包 ===
+                    try {
+                        const rpData = JSON.parse(rpMatch[1]);
+                        messageObj = {
+                            sender: 'contact',
+                            type: 'red-packet',
+                            content: {
+                                amount: rpData.amount,
+                                greeting: rpData.greeting,
+                                status: 'unopened'
+                            }
+                        };
+                    } catch (e) {
+                        console.error("解析红包JSON失败", e);
+                        messageObj = {sender: 'contact', text: segmentText};
+                    }
+                } else if (trimmed.startsWith('<render>')) {
+                    // === 处理 HTML 渲染 ===
+                    messageObj = {sender: 'contact', text: trimmed};
+                } else {
+                    // === 普通文本 ===
+                    messageObj = {sender: 'contact', text: trimmed};
+                }
+                // 保存并渲染
                 const idx = saveSweetheartMessage(contactId, messageObj);
                 messagesEl.appendChild(_createMessageDOM(contactId, messageObj, idx));
                 messagesEl.scrollTop = messagesEl.scrollHeight;
             };
-
+// 执行分段渲染（即使只有一段也会执行）
             for (const segment of rawSegments) {
+                if (!segment.trim()) continue;
                 await processSegment(segment);
-                await new Promise(r => setTimeout(r, 600));
+                // 模拟打字机或语音发送间隔，稍微长一点更自然
+                await new Promise(r => setTimeout(r, 800));
             }
         }
 
@@ -8720,7 +8799,7 @@ function gatherWorldbookContext() {
 
 let mapPins = []; // 存储所有大头针
 let currentEditingPin = null; // 当前编辑的大头针
-let isDraggingPin = false; // 是否正在拖动
+
 let draggedPin = null; // 正在拖动的大头针
 let dragOffset = {x: 0, y: 0}; // 拖动偏移量
 
@@ -8980,164 +9059,129 @@ function renderMapPins() {
 }
 
 // 设置地图拖动监听器
+let isDraggingPin = false;
+let draggedPinElement = null; // 存储当前正在拖动的DOM元素
+let activePinId = null;       // 存储当前正在拖动的数据ID
+// 1. 设置地图拖拽监听器 (替换旧函数)
 function setupMapDragListeners() {
     const pins = document.querySelectorAll('.map-pin');
-
+    const mapContainer = document.getElementById('mapContainer');
     pins.forEach(pin => {
-        let longPressTimer = null;
-        let startPos = {x: 0, y: 0};
-        let hasMoved = false;
+        // 清除旧事件以防重复绑定
+        const newPin = pin.cloneNode(true);
+        pin.parentNode.replaceChild(newPin, pin);
 
-        // 触摸开始/鼠标按下
-        const handleStart = (e) => {
-            e.preventDefault();
-            const touch = e.touches ? e.touches[0] : e;
-            startPos = {x: touch.clientX, y: touch.clientY};
-            hasMoved = false;
-
-            // 长按检测（500ms）
-            longPressTimer = setTimeout(() => {
-                startDragging(pin, touch);
-                showDragHint();
-            }, 500);
-        };
-
-        // 触摸移动/鼠标移动
-        const handleMove = (e) => {
-            const touch = e.touches ? e.touches[0] : e;
-            const distance = Math.sqrt(
-                Math.pow(touch.clientX - startPos.x, 2) +
-                Math.pow(touch.clientY - startPos.y, 2)
-            );
-
-            // 如果移动超过5像素，取消长按
-            if (distance > 5 && !isDraggingPin) {
-                clearTimeout(longPressTimer);
-                hasMoved = true;
-            }
-
-            // 如果正在拖动，更新位置
-            if (isDraggingPin && draggedPin === pin) {
-                updateDragPosition(touch);
-            }
-        };
-
-        // 触摸结束/鼠标释放
-        const handleEnd = (e) => {
-            clearTimeout(longPressTimer);
-
-            if (isDraggingPin && draggedPin === pin) {
-                endDragging();
-            } else if (!hasMoved) {
-                // 如果没有移动且没有触发长按，执行点击
-                editMapPin(pin.dataset.pinId);
-            }
-        };
-
-        // 绑定事件
-        pin.addEventListener('touchstart', handleStart, {passive: false});
-        pin.addEventListener('mousedown', handleStart);
-
-        pin.addEventListener('touchmove', handleMove, {passive: false});
-        pin.addEventListener('mousemove', handleMove);
-
-        pin.addEventListener('touchend', handleEnd);
-        pin.addEventListener('mouseup', handleEnd);
-
-        // 防止触摸时的默认行为
-        pin.addEventListener('touchcancel', () => {
-            clearTimeout(longPressTimer);
-            if (isDraggingPin && draggedPin === pin) {
-                endDragging();
-            }
-        });
+        // 绑定触摸/鼠标按下事件
+        newPin.addEventListener('touchstart', (e) => handleDragStart(e, newPin), { passive: false });
+        newPin.addEventListener('mousedown', (e) => handleDragStart(e, newPin));
     });
+    // 为容器绑定移动和结束事件（利用事件冒泡或全局捕获）
+    // 注意：这里我们绑定到 document 以防止滑动出容器后丢失焦点
+    document.removeEventListener('touchmove', handleGlobalMove);
+    document.removeEventListener('touchend', handleGlobalEnd);
+    document.removeEventListener('mousemove', handleGlobalMove);
+    document.removeEventListener('mouseup', handleGlobalEnd);
+    // 重新绑定全局事件
+    document.addEventListener('touchmove', handleGlobalMove, { passive: false });
+    document.addEventListener('touchend', handleGlobalEnd);
+    document.addEventListener('mousemove', handleGlobalMove);
+    document.addEventListener('mouseup', handleGlobalEnd);
+}
+// 2. 开始拖动处理
+function handleDragStart(e, pinEl) {
+    // 如果是编辑模式才允许拖动，或者无条件允许（根据你的需求）
+
+    e.preventDefault(); // 阻止浏览器滚动
+    e.stopPropagation(); // 阻止事件冒泡
+    isDraggingPin = false; // 先标记为未真正开始拖动（用于区分点击）
+    draggedPinElement = pinEl;
+    activePinId = pinEl.dataset.pinId;
+    // 设置一个长按计时器，只有按住超过 200ms 才算拖动，否则算点击
+    // 这一步是为了区分 "点击编辑" 和 "长按拖动"
+    pinEl.dragTimer = setTimeout(() => {
+        isDraggingPin = true;
+        pinEl.classList.add('dragging');
+        showDragHint(); // 显示提示
+
+        // 获取触摸点
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        // 立即更新一次位置，让它跟手
+        movePinToCoordinate(clientX, clientY);
+    }, 200);
 }
 
-// 开始拖动
-function startDragging(pin, touch) {
-    isDraggingPin = true;
-    draggedPin = pin;
-    pin.classList.add('dragging');
 
+
+// 3. 全局移动处理
+function handleGlobalMove(e) {
+    // 如果没有激活的 Pin，或者没进入拖动状态（长按计时器还没触发），则不处理
+    if (!draggedPinElement) return;
+    // 如果还没有变成拖动状态（还在 200ms 判定窗内），如果移动了，取消点击判定，直接开始拖动
+    if (!isDraggingPin) {
+        clearTimeout(draggedPinElement.dragTimer);
+        isDraggingPin = true;
+        draggedPinElement.classList.add('dragging');
+    }
+    e.preventDefault(); // 关键：阻止屏幕滚动
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    movePinToCoordinate(clientX, clientY);
+}
+// 4. 将 Pin 移动到指定屏幕坐标
+function movePinToCoordinate(clientX, clientY) {
+    if (!draggedPinElement) return;
     const mapContainer = document.getElementById('mapContainer');
     const rect = mapContainer.getBoundingClientRect();
-    const pinRect = pin.getBoundingClientRect();
-
-    // 计算偏移量
-    dragOffset.x = touch.clientX - pinRect.left;
-    dragOffset.y = touch.clientY - pinRect.top;
-
-    // 添加全局移动和释放监听
-    document.addEventListener('touchmove', globalDragMove, {passive: false});
-    document.addEventListener('mousemove', globalDragMove);
-    document.addEventListener('touchend', globalDragEnd);
-    document.addEventListener('mouseup', globalDragEnd);
-}
-
-// 全局拖动移动
-function globalDragMove(e) {
-    if (!isDraggingPin || !draggedPin) return;
-    e.preventDefault();
-    const touch = e.touches ? e.touches[0] : e;
-    updateDragPosition(touch);
-}
-
-// 更新拖动位置
-function updateDragPosition(touch) {
-    if (!draggedPin) return;
-
-    const mapContainer = document.getElementById('mapContainer');
-    const rect = mapContainer.getBoundingClientRect();
-
-    // 计算新位置（百分比）
-    let x = ((touch.clientX - rect.left) / rect.width) * 100;
-    let y = ((touch.clientY - rect.top) / rect.height) * 100;
-
-    // 限制在地图范围内
+    // 计算相对于容器的百分比
+    let x = ((clientX - rect.left) / rect.width) * 100;
+    let y = ((clientY - rect.top) / rect.height) * 100;
+    // 边界限制 (0% - 100%)
     x = Math.max(0, Math.min(100, x));
     y = Math.max(0, Math.min(100, y));
-
-    // 更新DOM位置
-    draggedPin.style.left = x + '%';
-    draggedPin.style.top = y + '%';
-
-    // 更新数据
-    const pinId = draggedPin.dataset.pinId;
-    const pinData = mapPins.find(p => p.id === pinId);
-    if (pinData) {
-        pinData.x = x;
-        pinData.y = y;
-    }
+    // 更新 DOM
+    draggedPinElement.style.left = x + '%';
+    draggedPinElement.style.top = y + '%';
+    // (可选) 实时更新数据对象，如果你希望拖动时数据也变
+    // updatePinData(activePinId, x, y);
 }
 
-// 全局拖动结束
-function globalDragEnd() {
-    if (isDraggingPin) {
-        endDragging();
-    }
-}
+// 5. 全局结束/释放处理
+function handleGlobalEnd(e) {
+    if (!draggedPinElement) return;
+    clearTimeout(draggedPinElement.dragTimer); // 清除长按计时器
+    // 如果只是短按（isDraggingPin 为 false），则视为点击，打开编辑
+    if (!isDraggingPin) {
+        editMapPin(activePinId);
+    } else {
+        // 如果是拖动结束
+        const mapContainer = document.getElementById('mapContainer');
+        const pinEl = draggedPinElement;
 
-// 结束拖动
-function endDragging() {
-    if (draggedPin) {
-        draggedPin.classList.remove('dragging');
-    }
+        // 保存最终位置到数据
+        // 直接读取 style 的 left/top 是字符串 'xx%'
+        const finalX = parseFloat(pinEl.style.left);
+        const finalY = parseFloat(pinEl.style.top);
 
+        updatePinData(activePinId, finalX, finalY);
+        saveMapData(); // 立即保存到 localStorage
+    }
+    // 重置状态
+    draggedPinElement.classList.remove('dragging');
+    draggedPinElement = null;
+    activePinId = null;
     isDraggingPin = false;
-    draggedPin = null;
-
-    // 移除全局监听
-    document.removeEventListener('touchmove', globalDragMove);
-    document.removeEventListener('mousemove', globalDragMove);
-    document.removeEventListener('touchend', globalDragEnd);
-    document.removeEventListener('mouseup', globalDragEnd);
-
-    // 隐藏提示
     hideDragHint();
+}
 
-    // 自动保存
-    saveMapData();
+// 6. 辅助：更新内存中的数组数据
+function updatePinData(pinId, x, y) {
+    const pin = mapPins.find(p => p.id === pinId);
+    if (pin) {
+        pin.x = x;
+        pin.y = y;
+    }
 }
 
 // 显示拖动提示
@@ -12078,6 +12122,8 @@ function updateTimer() {
 }
 
 // ========== 提交测试 ==========
+// script.js - 修改 submitTest 函数
+
 async function submitTest() {
     // 停止计时
     if (timerInterval) {
@@ -12087,7 +12133,7 @@ async function submitTest() {
 
     const useTime = document.getElementById('testTimer').textContent;
 
-    // 收集所有答案
+    // 1. 收集填空题/主观题的输入框答案
     testData.questions.forEach((q, index) => {
         if (q.type !== 'choice' && !testData.answers[index]) {
             const answerInput = document.getElementById(`answer_${index}`);
@@ -12101,32 +12147,54 @@ async function submitTest() {
     const unanswered = testData.questions.filter((q, index) => !testData.answers[index]);
     if (unanswered.length > 0) {
         if (!confirm(`还有${unanswered.length}道题未作答，确定要提交吗？`)) {
-            // 如果取消，重新开始计时
             timerInterval = setInterval(updateTimer, 1000);
             return;
         }
     }
 
-    // 计算得分（只计算客观题）
+    // 计算得分
     let correctCount = 0;
-    let objectiveTotal = 0; // 客观题总数
-    const subjectiveQuestions = []; // 主观题列表
-    const wrongAnswers = []; // 错误答案列表
+    let objectiveTotal = 0;
+    const subjectiveQuestions = [];
+    const wrongAnswers = [];
 
     testData.questions.forEach((q, index) => {
         const userAnswer = testData.answers[index] || '';
 
         if (q.type === 'subjective') {
-            // 主观题单独收集
             subjectiveQuestions.push({
                 question: q.question,
                 userAnswer: userAnswer,
                 referenceAnswer: q.answer
             });
         } else {
-            // 客观题（选择题和填空题）
+            // 客观题（选择 + 填空）
             objectiveTotal++;
-            if (userAnswer === q.answer) {
+
+            let isCorrect = false;
+
+            // 🔥🔥🔥 核心修复开始：智能对比逻辑 🔥🔥🔥
+            if (q.type === 'choice') {
+                // 1. 提取用户答案的首字母 (例如 "A. 内容" -> "A")
+                // 使用 charAt(0) 并转大写，确保只是对比字母
+                const userKey = userAnswer.trim().charAt(0).toUpperCase();
+
+                // 2. 提取标准答案的首字母 (防止AI有时候返回 "A." 有时候返回 "A")
+                const correctKey = q.answer.trim().charAt(0).toUpperCase();
+
+                // 3. 对比字母
+                if (userKey === correctKey) {
+                    isCorrect = true;
+                }
+            } else {
+                // 填空题：保持严格文本匹配
+                if (userAnswer === q.answer) {
+                    isCorrect = true;
+                }
+            }
+            // 🔥🔥🔥 核心修复结束 🔥🔥🔥
+
+            if (isCorrect) {
                 correctCount++;
             } else {
                 wrongAnswers.push({
@@ -12170,7 +12238,7 @@ async function submitTest() {
         wrongAnswers.forEach((item, index) => {
             detailsHTML += `
                 <div class="wrong-answer-item">
-                    <div class="wrong-q-number">第${index + 1}题 (${item.type})</div>
+                    <div class="wrong-q-number">错题 ${index + 1} (${item.type})</div>
                     <div class="wrong-q-text">${item.question}</div>
                     <div class="wrong-answer-row">
                         <span class="answer-label wrong">你的答案：</span>
@@ -12187,7 +12255,11 @@ async function submitTest() {
     }
 
     document.getElementById('scoreDetails').innerHTML = detailsHTML;
-    document.getElementById('testResultModal').classList.add('show');
+
+    // 确保弹窗显示（之前修复的层级问题需要配合 CSS）
+    const modal = document.getElementById('testResultModal');
+    modal.classList.add('show');
+    modal.style.display = 'flex'; // 双重保险
 
     // 保存测试数据，用于后续生成AI反馈
     testData.testResult = {
@@ -12695,11 +12767,11 @@ function sendRedPacket() {
     // 构造红包消息对象
     const redPacketMessage = {
         sender: 'user',
-        type: 'red-packet', // 新的消息类型
+        type: 'red-packet',
         content: {
             greeting: greeting,
-            amount: amount.toFixed(2), // 保留两位小数
-            status: 'unopened', // 'unopened' 或 'opened'
+            amount: amount.toFixed(2),
+            status: 'unopened',
         },
         timestamp: Date.now()
     };
@@ -12714,7 +12786,12 @@ function sendRedPacket() {
 
     // 清理工作
     closeRedPacketModal();
-    renderSweetheartList(); // 更新密友列表的最后消息
+
+    // 🔥 修复点：发完红包后，确保输入框区域状态重置，让接收按钮(星星)显示出来
+    document.querySelector('.sweetheart-chat-input-area').classList.remove('has-text');
+
+    // 更新密友列表的最后消息
+    renderSweetheartList();
 }
 
 // 事件监听：实时更新发红包弹窗的金额显示和按钮状态
