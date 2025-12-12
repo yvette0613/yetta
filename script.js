@@ -145,62 +145,79 @@ async function loadRealImage(imgElement) {
 }
 
 /**
- * 🧹 专门用于清洗 AI 思考过程的工具函数
- * 将 <think>...</think> 标签及其内容移除
+ * 🧹 工具函数：移除 AI 思考过程标签 <think>...</think>
  */
 function removeThinkTags(text) {
     if (!text) return "";
-    // 匹配 <think> 开始，中间任意字符(含换行)，</think> 结束
     return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 }
-
 /**
- * [终极增强版] 智能AI JSON响应解析器
- * 能够处理 <think> 标签、Markdown 包裹 和 纯文本
+ * [终极增强版] 智能 AI 响应解析器
+ * 修复：当 JSON 解析失败时，自动切除泄露在界面上的 "status": {...} 代码
  */
 function parseAiJsonResponse(rawMessage) {
     if (!rawMessage || typeof rawMessage !== 'string') {
         return {chatReplyText: '...', statusData: null};
     }
-
+    // 1. 基础清理：移除思考标签和 Markdown
     let text = removeThinkTags(rawMessage);
-
-    // 1. 🔍 核心修复：移除 <think>...</think> 思考过程
-    // 推理模型会先输出思考过程，这会导致 JSON.parse 失败，必须去掉
-    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
-    text = text.trim();
-
-    // 2. 清理 Markdown 代码块标记 (```json ... ```)
-    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
-
-    // 3. 寻找外层 JSON 对象的边界
+    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+    // 2. 【方案A】尝试标准 JSON 解析
+    // 提取最外层的花括号 {} 内容
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');
-
     if (firstBrace !== -1 && lastBrace > firstBrace) {
         const jsonCandidate = text.substring(firstBrace, lastBrace + 1);
         try {
             const parsed = JSON.parse(jsonCandidate);
-            // 4. 读取解析后的数据
-            // 如果 JSON 里有 reply 字段，就使用它；否则使用清洗后的文本
+            // 如果解析成功，且包含 reply 字段，直接返回
+            // 注意：有时候 AI 会把 reply 放在最后，所以优先信赖解析出的 reply
             return {
-                chatReplyText: parsed.reply || text,
+                chatReplyText: parsed.reply || "",
                 statusData: parsed.status || null
             };
         } catch (e) {
-            console.warn(`⚠️ JSON解析失败（即使提取了括号）: ${e.message}`);
+            // 解析失败（比如内容里有未转义的换行符），进入方案B
+            console.warn("JSON解析失败，尝试手动清洗脏数据...");
         }
     }
+    // 3. 【方案B】脏数据清洗（专门修复截图中的问题）
+    // 现象：界面显示了 "...老茧。 ", "status": { ...
+    // 原因：解析失败，且原始文本包含了 JSON 片段。
 
-    // 5. 降级处理：如果没有有效的 JSON，直接返回清洗后的文本
-    // 这样至少用户能看到 AI 的回复，而不是报错
+    let cleanText = text;
+
+    // 如果文本中直接暴露了 "status": 代码，强制截断
+    if (cleanText.includes('"status":')) {
+        // 找到 "status": 的位置
+        const splitIndex = cleanText.indexOf('"status":');
+
+        // 截取前半部分
+        let textPart = cleanText.substring(0, splitIndex);
+
+        // 倒序清理末尾残留的符号（逗号、引号、大括号）
+        // 例如从 `...老茧。 ", ` 清理成 `...老茧。`
+        textPart = textPart.replace(/[,}\s"]+$/, '').trim();
+
+        // 如果清理后还有内容，就只显示这部分
+        if (textPart) {
+            cleanText = textPart;
+        }
+    }
+    // 同样处理可能暴露的 "reply": 标签
+    if (cleanText.includes('"reply":')) {
+        // 移除 "reply": " 开头
+        cleanText = cleanText.replace(/"reply"\s*:\s*"/, '');
+        // 移除可能的末尾引号
+        cleanText = cleanText.replace(/",?$/, '');
+    }
+    // 最终返回：优先展示清洗后的干净文本
+    // (注意：如果进入此逻辑，statusData 可能会丢失，但保证了界面美观)
     return {
-        chatReplyText: text || rawMessage,
+        chatReplyText: cleanText,
         statusData: null
     };
 }
-
-
 // ================== 地址选择与持久化功能 ==================
 
 // 1. 定义全局变量来存储用户的选择

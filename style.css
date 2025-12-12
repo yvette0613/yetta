@@ -1820,7 +1820,7 @@ body.fullscreen-enabled {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 3000 !important;
+    z-index: 2000;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -2116,7 +2116,7 @@ body.fullscreen-enabled {
 
 .action-sheet-options {
     position: relative;
-    z-index: 1;
+    z-index: 2000;
     background: #f0f2f5;
     padding: 8px;
     margin: 8px;
@@ -3034,7 +3034,7 @@ body.code-scrolling-enabled .code-block-wrapper {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1011; /* 比卡片高，比模态框覆盖层低 */
+    z-index: 2001; /* 比卡片高，比模态框覆盖层低 */
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -3060,7 +3060,7 @@ body.code-scrolling-enabled .code-block-wrapper {
 
 .action-sheet-options {
     position: relative;
-    z-index: 1;
+    z-index: 2000;
     padding: 0;
     margin: 8px;
     /* 动画效果：从下方滑入 */
