@@ -15091,10 +15091,20 @@ async function sendLedgerMessage() {
                     if (!descVal) descVal = "杂项支出";
 
                     // 判断正负 (简单关键词)
+
+
+// --- 👇 替换为下面的新代码 👇 ---
                     let amountFinal = amountVal;
-                    if (!text.includes('收入') && !text.includes('赚') && amountFinal > 0) {
+// 定义收入关键词：增加了 转、给、收、存
+                    const incomeKeywords = ['收入', '赚', '转', '给', '收', '工资', '+'];
+                    const isIncome = incomeKeywords.some(kw => text.includes(kw));
+
+// 如果不包含收入关键词，且并不是负数，则默认为支出
+                    if (!isIncome && amountFinal > 0) {
                         amountFinal = -amountFinal; // 默认为支出
                     }
+// ------------------------------
+
 
                     itemsToSave.push({desc: descVal, amount: amountFinal});
                     replyText = "格式有点乱，但我尽力理解了！";
@@ -15145,7 +15155,10 @@ async function sendLedgerMessage() {
             if (!desc) desc = "一般支出";
 
             let type = 'expense';
-            if (text.includes('收入') || text.includes('赚') || text.includes('工资')) {
+//同样增加更多关键词
+            const incomeKeywords = ['收入', '赚', '转', '给', '收', '工资', '+'];
+            const isIncome = incomeKeywords.some(kw => text.includes(kw));
+            if (isIncome) {
                 type = 'income';
                 amount = Math.abs(amount);
             } else {
