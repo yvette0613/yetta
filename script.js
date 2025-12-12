@@ -144,6 +144,15 @@ async function loadRealImage(imgElement) {
     }
 }
 
+/**
+ * 🧹 专门用于清洗 AI 思考过程的工具函数
+ * 将 <think>...</think> 标签及其内容移除
+ */
+function removeThinkTags(text) {
+    if (!text) return "";
+    // 匹配 <think> 开始，中间任意字符(含换行)，</think> 结束
+    return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+}
 
 /**
  * [终极增强版] 智能AI JSON响应解析器
@@ -154,7 +163,7 @@ function parseAiJsonResponse(rawMessage) {
         return {chatReplyText: '...', statusData: null};
     }
 
-    let text = rawMessage.trim();
+    let text = removeThinkTags(rawMessage);
 
     // 1. 🔍 核心修复：移除 <think>...</think> 思考过程
     // 推理模型会先输出思考过程，这会导致 JSON.parse 失败，必须去掉
@@ -5160,9 +5169,16 @@ async function getAiReply() {
     if (!result.success) {
         showErrorModal('请求失败', result.message);
     } else {
-        const segments = result.message.split('---').filter(s => s.trim());
-        if (segments.length === 0) segments.push(result.message);
+        // 🔥🔥🔥 核心修复：在这里先清洗思考过程 🔥🔥🔥
+        const cleanMessage = removeThinkTags(result.message);
+
+        // 使用清洗后的文本进行分割
+        const segments = cleanMessage.split('---').filter(s => s.trim());
+
+        if (segments.length === 0 && cleanMessage) segments.push(cleanMessage); // 防止清洗后被误判为空
+
         for (const segmentText of segments) {
+
             const messageObj = {sender: 'contact', text: segmentText.trim()};
             const newIndex = saveMessage(contactId, messageObj);
             messagesEl.appendChild(_createMessageDOM(contactId, messageObj, newIndex));
@@ -11170,7 +11186,7 @@ function parseOfflineResponse(result) {
 
     try {
         // 1. 首先尝试清理可能的markdown代码块标记
-        let cleanedMessage = result.message.trim();
+        let cleanedMessage = removeThinkTags(result.message);
 
         // 移除可能的 ```json 和 ``` 标记
         cleanedMessage = cleanedMessage.replace(/^```json\s*/i, '');
