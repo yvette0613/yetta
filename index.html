@@ -1335,56 +1335,57 @@
                 <!-- 分类列表（有数据时显示）-->
                 <div class="category-list" id="classificationList" style="display: none;"></div>
             </div>
+        </div>
 
-            <!-- ========== 分类管理页面 - 结束 ========== -->
-            <!-- ========== 分组管理页面 - 开始 ========== -->
-            <div class="category-manage-page" id="categoryManagePage">
-                <div class="category-manage-header">
-                    <div class="back-btn" onclick="closeCategoryManage()">←</div>
-                    <div class="category-manage-title">分组管理</div>
-                    <div class="add-category-btn" onclick="openNewCategoryModal()">+</div>
-                </div>
-                <div class="category-manage-content" id="categoryManageContent">
-                    <!-- 空状态（默认显示）-->
-                    <div class="category-empty" id="categoryEmpty">
-                        <div class="category-empty-icon">📂</div>
-                        <div class="category-empty-text">现在还没有分组哦</div>
-                        <div class="category-empty-hint">点击右上角添加一个吧 ✨</div>
-                    </div>
-                    <!-- 分组列表（有数据时显示）-->
-                    <div class="category-list" id="categoryList" style="display: none;"></div>
-                </div>
+        <!-- ========== 分类管理页面 - 结束 ========== -->
+        <!-- ========== 分组管理页面 - 开始 ========== -->
+        <div class="category-manage-page" id="categoryManagePage">
+            <div class="category-manage-header">
+                <div class="back-btn" onclick="closeCategoryManage()">←</div>
+                <div class="category-manage-title">分组管理</div>
+                <div class="add-category-btn" onclick="openNewCategoryModal()">+</div>
             </div>
-            <!-- ========== 新建分组弹窗 ========== -->
-            <div class="category-modal" id="categoryModal">
-                <div class="category-modal-card">
-                    <div class="category-modal-header">
-                        <div class="category-modal-title" id="categoryModalTitle">新建分组</div>
-                        <button class="category-modal-close" onclick="closeCategoryModal()">×</button>
+            <div class="category-manage-content" id="categoryManageContent">
+                <!-- 空状态（默认显示）-->
+                <div class="category-empty" id="categoryEmpty">
+                    <div class="category-empty-icon">📂</div>
+                    <div class="category-empty-text">现在还没有分组哦</div>
+                    <div class="category-empty-hint">点击右上角添加一个吧 ✨</div>
+                </div>
+                <!-- 分组列表（有数据时显示）-->
+                <div class="category-list" id="categoryList" style="display: none;"></div>
+            </div>
+        </div>
+        <!-- ========== 新建分组弹窗 ========== -->
+        <div class="category-modal" id="categoryModal">
+            <div class="category-modal-card">
+                <div class="category-modal-header">
+                    <div class="category-modal-title" id="categoryModalTitle">新建分组</div>
+                    <button class="category-modal-close" onclick="closeCategoryModal()">×</button>
+                </div>
+                <div class="category-modal-body">
+                    <div class="category-form-group">
+                        <label class="category-form-label">分组名称</label>
+                        <input type="text" class="category-form-input" id="categoryNameInput"
+                               placeholder="例如：魔法系统">
                     </div>
-                    <div class="category-modal-body">
-                        <div class="category-form-group">
-                            <label class="category-form-label">分组名称</label>
-                            <input type="text" class="category-form-input" id="categoryNameInput"
-                                   placeholder="例如：魔法系统">
-                        </div>
-                        <div class="category-form-group">
-                            <label class="category-form-label">分组描述</label>
-                            <textarea class="category-form-textarea" id="categoryDescInput"
-                                      placeholder="简单描述这个分组的用途..."></textarea>
-                        </div>
+                    <div class="category-form-group">
+                        <label class="category-form-label">分组描述</label>
+                        <textarea class="category-form-textarea" id="categoryDescInput"
+                                  placeholder="简单描述这个分组的用途..."></textarea>
                     </div>
-                    <div class="category-modal-footer">
-                        <button class="category-btn category-btn-cancel" onclick="closeCategoryModal()">取消
-                        </button>
-                        <button class="category-btn category-btn-delete" id="categoryDeleteBtn"
-                                style="display: none;" onclick="deleteCategory()">删除
-                        </button>
-                        <button class="category-btn category-btn-save" onclick="saveCategory()">保存</button>
-                    </div>
+                </div>
+                <div class="category-modal-footer">
+                    <button class="category-btn category-btn-cancel" onclick="closeCategoryModal()">取消
+                    </button>
+                    <button class="category-btn category-btn-delete" id="categoryDeleteBtn"
+                            style="display: none;" onclick="deleteCategory()">删除
+                    </button>
+                    <button class="category-btn category-btn-save" onclick="saveCategory()">保存</button>
                 </div>
             </div>
         </div>
+
         <!-- ========== 分组管理 - 结束 ========== -->
 
 
@@ -1709,6 +1710,7 @@
         </div>
     </div>
 </div>
+
 <script src="script.js" defer></script>
 
 </body>
