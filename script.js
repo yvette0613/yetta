@@ -5034,19 +5034,18 @@ ${formattedDialog}
 `;
 }
 /**
- * [终极修复版] 普通聊天 - 获取AI回复
- * 修复：点击信封没反应、按钮变暗无法恢复的问题
+ * [终极增强版] 普通聊天 - 获取AI回复
+ * 优化：增加对图片消息的强识别逻辑，提高工具调用成功率
  */
 async function getAiReply() {
-    console.log("🚀 普通聊天 API 触发");
+    console.log("🚀 普通聊天 API 触发 (增强版)");
 
     const getReplyBtn = document.getElementById('getReplyBtn');
     const chatInput = document.getElementById('chatInput');
     const messagesEl = document.getElementById('chatMessages');
 
-    // 1. 基础检查：不仅检查变量，还检查ID
+    // 1. 基础检查
     if (!currentChatContact || !currentChatContact.id) {
-        // 如果没有联系人，直接报错并恢复按钮
         alert("错误：未找到当前聊天对象，请重新进入聊天。");
         if (getReplyBtn) {
             getReplyBtn.disabled = false;
@@ -5057,53 +5056,107 @@ async function getAiReply() {
 
     const contactId = currentChatContact.id;
 
-    // === UI反馈：点击后变暗，防止连点 ===
+    // UI反馈：防止连点
     if (getReplyBtn) {
         getReplyBtn.disabled = true;
         getReplyBtn.style.opacity = '0.5';
     }
 
     try {
-        // 2. 读取并在没有输入时自动构造“戳一戳”
         const chatHistory = JSON.parse(localStorage.getItem('phoneChatHistory') || '{}')[contactId] || [];
         const currentUserInput = chatInput.value.trim();
 
-        // 构建发送给AI的消息
+        // -------------------------------------------------------------
+        // 🔥 核心优化开始：检测历史记录中最后一条是否这也是图片
+        // -------------------------------------------------------------
         const messages = [];
 
         // 系统指令
         messages.push({role: "system", content: AI_REALCHAT_SYSTEM_PROMPT});
+
         // 注入世界书
         const worldbookContext = gatherWorldbookContext();
         if (worldbookContext) messages.push({role: "system", content: worldbookContext});
+
         // 角色ID
         messages.push({role: "system", content: `(System: You are roleplaying as "${currentChatContact.name}". Status: ${currentChatContact.status || 'Friend'})`});
 
-        // 填入历史记录
-        const recentHistory = chatHistory.slice(-10);
-        recentHistory.forEach(msg => {
+        // 取最近记录
+        // 注意：我们这里不直接 push 到 messages，而是先处理一下
+        const recentMessages = chatHistory.slice(-10);
+
+        // 检查最后一条是否是由于用户发的图片，且尚未被"消费"掉
+        // 注意：普通聊天没有 isProcessed 字段，我们通过逻辑判断
+        const lastMsg = recentMessages[recentMessages.length - 1];
+        let multimodalMessage = null;
+
+        // 如果最后一条是用户发的，并且包含 imageUrl，且当前输入框为空（说明是刚发完图点击接收）
+        // 或者当前输入框有字，我们把图和字合并
+        if (lastMsg && lastMsg.sender === 'user' && lastMsg.imageUrl) {
+            console.log("📷 检测到最后一条是图片，构建多模态请求...");
+
+            multimodalMessage = {
+                role: 'user',
+                content: [
+                    {
+                        type: 'image_url',
+                        image_url: {
+                            url: lastMsg.imageUrl
+                        }
+                    },
+                    {
+                        type: 'text',
+                        // 如果用户现在输入了字，就用现在的字；否则用图片自带的文字描述
+                        text: currentUserInput || lastMsg.text || '请分析这张图片'
+                    }
+                ]
+            };
+
+            // 从历史记录中移除最后一条（因为我们把它重构成了 multimodalMessage）
+            recentMessages.pop();
+        }
+
+        // 将剩余的历史记录加入
+        recentMessages.forEach(msg => {
             const role = msg.sender === 'user' ? 'user' : 'assistant';
-            // 简单处理内容
             let content = msg.text || '';
             if (msg.quote) content = `(引用: ${msg.quote.text})\n` + content;
+
+            // 这里过滤掉 Markdown 图片链接，防止重复混淆
+            // content = content.replace(/!\[.*?\]\(.*?\)/g, '[图片]');
+
             if (content.trim()) messages.push({role, content});
         });
 
-        // 处理当前输入
-        if (currentUserInput) {
+        // -------------------------------------------------------------
+        // 🔥 核心优化结束：发送构建好的消息
+        // -------------------------------------------------------------
+
+        // 1. 如果有构建好的多模态消息 (图片+文字)，优先发送这个
+        if (multimodalMessage) {
+            messages.push(multimodalMessage);
+            // 清理输入框和状态
+            if(currentUserInput) {
+                 chatInput.value = '';
+                 document.querySelector('.chat-input-area').classList.remove('has-text');
+                 // 还需要把刚才用户打的字上屏（因为刚才并没有上屏，只是在输入框里）
+                 // 但如果是点击“发送”按钮进来的，字已经上屏了。
+                 // 这里为了保险，不做重复上屏，假设用户是通过“发送”->“接收”流程操作的。
+            }
+        }
+        // 2. 否则，如果有纯文本输入，发送文本
+        else if (currentUserInput) {
             simulateSendingMessage(currentUserInput);
             chatInput.value = '';
             document.querySelector('.chat-input-area').classList.remove('has-text');
-            // 将输入加入队列
             messages.push({role: 'user', content: currentUserInput});
         }
-
-        // 🔥 关键修复：如果没有用户消息（没打字直接点按钮），强制插入一条
-        if (!messages.some(m => m.role === 'user')) {
+        // 3. 如果啥都没有，触发戳一戳
+        else if (!messages.some(m => m.role === 'user')) {
             console.log("检测到无输入，注入自动交互指令...");
             messages.push({
                 role: 'user',
-                content: "(看着你，等待回复...)" // 这句话AI能看到，可以触发它主动说话
+                content: "(看着你，等待回复...)"
             });
         }
 
@@ -5114,7 +5167,7 @@ async function getAiReply() {
         messagesEl.appendChild(thinkingBubble);
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
-        // 3. 调用 API
+        // 调用 API
         const result = await callApi(messages);
 
         // 移除思考气泡
@@ -5122,11 +5175,14 @@ async function getAiReply() {
         if (thinkingEl) thinkingEl.remove();
 
         if (!result.success) {
-            showErrorModal('请求失败', result.message);
+            // 这里增加针对性的错误提示
+            if (result.message.includes("-1")) {
+                showErrorModal('AI工具故障', 'AI试图识别图片，但服务端的视觉工具暂时不可用(Code -1)。请稍后再试。');
+            } else {
+                showErrorModal('请求失败', result.message);
+            }
         } else {
-            // 清洗和显示回复
             let cleanMessage = result.message.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            // 如果AI返回了JSON格式（有些模型会这样），尝试提取 text
             if (cleanMessage.startsWith('{')) {
                 try {
                     const json = JSON.parse(cleanMessage);
@@ -5151,7 +5207,6 @@ async function getAiReply() {
         console.error("普通聊天出错:", error);
         showErrorModal('错误', '网络连接超时或出错');
     } finally {
-        // 🔥 无论成功还是失败，最后一定要把按钮恢复！🔥
         if (getReplyBtn) {
             getReplyBtn.disabled = false;
             getReplyBtn.style.opacity = '1';
@@ -13011,7 +13066,7 @@ let currentChapterIndex = 0; // 当前章节索引
 // 1. 打开书架页面
 function openNovelShelf() {
 
-    
+
 // 🔥 新增这一行：确保世界选择页面被强制移出
     document.getElementById('novelShelfPage').classList.add('show');
     loadNovelLibrary();
