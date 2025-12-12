@@ -2786,6 +2786,11 @@ let currentWorldId = null; // 当前选中的世界ID
 // 替换 openWorldSelect 函数
 function openWorldSelect() {
     console.log("世界选择页面已被禁用，直接进入默认世界。");
+
+    // 确保当前有世界ID，如果没有则再次强制指定
+    if (!currentWorldId) {
+        currentWorldId = 'DEFAULT_WORLD';
+    }
     // 直接跳转到密友列表
     openSweetheartList();
 }
@@ -2899,23 +2904,22 @@ function loadWorldsData() {
     try {
         const saved = localStorage.getItem('phoneWorldsData');
 
-        // 🗺️ 默认地图链接
+        // 🗺️ 默认地图链接 (你想要的默认地图)
         const defaultMapUrl = 'https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1760979959274_qdqqd_m9jrpo.jpg';
 
-        // 🔥 核心修复：把所有内置密友的ID都加到这里！
-        // 这样新用户第一次打开时，这些人才会显示出来
+        // 🔥 核心逻辑：定义默认世界，并把所有密友ID都塞进去
         const defaultWorld = {
             id: 'DEFAULT_WORLD',
             name: '默认世界',
             description: '初始设定的世界',
             icon: '🌏',
-            mapUrl: defaultMapUrl,
-            // 👇 这里把所有 SH_ 开头的ID都补全了
+            mapUrl: defaultMapUrl, // 这里设置了默认地图
+            // 👇 这里列出所有内置密友的ID，确保他们能显示出来
             contacts: [
-                '1', '2',
                 'SH_default_001',
                 'SH_school_senior',
                 'SH_school_mate',
+                'SH_psychology_senior',
                 'SH_school_hunk',
                 'SH_school_junior'
             ],
@@ -2926,9 +2930,16 @@ function loadWorldsData() {
         if (saved) {
             worldsData = JSON.parse(saved);
 
-            // 🔥 自动修复逻辑：如果老用户已有的默认世界缺少这些ID，自动给它补上
-            const existingDefaultWorld = worldsData.find(w => w.id === 'DEFAULT_WORLD');
-            if (existingDefaultWorld) {
+            // 🔥 自动修复逻辑：检查当前数据里有没有 DEFAULT_WORLD
+            // 如果老用户以前存过数据，我们要把新的地图和联系人补进去
+            let existingDefaultWorld = worldsData.find(w => w.id === 'DEFAULT_WORLD');
+
+            if (!existingDefaultWorld) {
+                // 如果找不到默认世界，就加进去
+                worldsData.unshift(defaultWorld);
+                existingDefaultWorld = defaultWorld;
+            } else {
+                // 如果找到了，检查是否缺地图或联系人，给它补全
                 let hasChanges = false;
 
                 // 1. 补全地图
@@ -2937,9 +2948,8 @@ function loadWorldsData() {
                     hasChanges = true;
                 }
 
-                // 2. 补全缺失的默认密友ID
-                const missingIds = ['SH_school_senior', 'SH_school_mate', 'SH_school_hunk', 'SH_school_junior'];
-                missingIds.forEach(id => {
+                // 2. 补全缺失的密友ID
+                defaultWorld.contacts.forEach(id => {
                     if (!existingDefaultWorld.contacts.includes(id)) {
                         existingDefaultWorld.contacts.push(id);
                         hasChanges = true;
@@ -2951,29 +2961,23 @@ function loadWorldsData() {
                     console.log('✅ 已自动修复默认世界的地图和联系人列表');
                 }
             }
-
-            if (worldsData.length === 0) {
-                worldsData.push(defaultWorld);
-                saveWorldsData();
-            }
         } else {
-            // 首次安装
+            // 首次安装，直接写入默认世界
             worldsData.push(defaultWorld);
             saveWorldsData();
 
-            // 预设地图地点
-            const mapKey = `mapPins_${defaultWorld.id}`;
+            // 预设地图上的大头针地点
+            const mapKey = `mapPins_DEFAULT_WORLD`;
             if (!localStorage.getItem(mapKey)) {
                 localStorage.setItem(mapKey, JSON.stringify(DEFAULT_MAP_LOCATIONS));
             }
         }
 
-        if (!currentWorldId) {
-            currentWorldId = worldsData[0].id;
-            localStorage.setItem('currentWorldId', currentWorldId);
-        }
+        // 🔥 强制锁定当前世界ID为默认世界
+        currentWorldId = 'DEFAULT_WORLD';
+        localStorage.setItem('currentWorldId', currentWorldId);
 
-        console.log('✅ 世界数据已加载，当前锁定世界:', currentWorldId);
+        console.log('✅ 世界数据已加载，已自动锁定进入默认世界');
 
     } catch (e) {
         console.error('加载世界数据失败:', e);
@@ -3626,13 +3630,11 @@ function closeBeautify() {
 }
 
 function openContacts() {
-    // ✅ 新增:清除当前世界ID,表示这是从主屏幕打开的普通通讯录
-    currentWorldId = null;
-    localStorage.removeItem('currentWorldId');
-
+    // 这里不需要设置世界ID，保持它是普通模式
     document.getElementById('contactsPage').classList.add('show');
     renderContacts(contactsData);
 }
+
 
 function closeContacts() {
     document.getElementById('contactsPage').classList.remove('show');
@@ -6160,14 +6162,14 @@ function openSweetheartList() {
 }
 
 
-// ▼▼▼ 使用这个【绝对修正版】的 closeSweetheartList 函数进行替换 ▼▼▼
-
+// [修改版] 关闭密友列表，直接回到桌面
 function closeSweetheartList(isNavigatingBack = false) {
     document.getElementById('sweetheartListPage').classList.remove('show');
 
-    // 🔥 修改：无论是否点击返回键，都只是关闭当前页，即回到桌面
-    // 不需要再调用 openWorldSelect()
+    // 🔥 核心修改：移除原有的 openWorldSelect() 调用
+    // 这样点击返回时，就会直接露出身后的主屏幕（App图标界面）
 }
+
 
 // ▼▼▼ 替换这个新的 getLastMessagePreview 函数 ▼▼▼
 /**
