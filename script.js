@@ -4776,7 +4776,7 @@ async function callApi(messages, fileInfos = [], customVariables = {}, skipConte
                         // 过滤掉 is_from_self: true 的消息 (这是用户自己的提问回显)
                         if (data.type === 'reply' && data.payload && !data.payload.is_from_self) {
                             if (data.payload.content) {
-                                fullReply += data.payload.content;
+                                fullReply = data.payload.content;
                             }
                         }
                         // 如果有思考过程 (deepseek-r1等)，也可以在这里处理 logging
@@ -14959,7 +14959,7 @@ function toggleLedgerAiMode() {
     } else {
         switchEl.classList.remove('active');
         inputBar.classList.remove('ai-active');
-        inputField.placeholder = "例如：喝奶茶 25";
+        inputField.placeholder = "例如：喝奶茶花了25";
     }
 }
 
