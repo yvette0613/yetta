@@ -190,40 +190,6 @@
                 </div>
             </div>
         </div>
-        <div class="config-page" id="widgetManager">
-            <div class="settings-header">
-                <div class="back-btn" onclick="closeWidgetManager()">←</div>
-                <div class="settings-title">组件管理</div>
-            </div>
-
-            <div class="settings-content">
-                <div class="section-title">自定义组件代码</div>
-
-                <div style="padding: 0 20px;">
-                    <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                        <div style="font-size: 13px; color: #666; margin-bottom: 8px; font-weight: 600;">
-                            组件HTML代码
-                        </div>
-                        <textarea id="widgetCodeInput"
-                                  style="width: 100%; min-height: 200px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; resize: vertical;"
-                                  placeholder="示例代码：<div class='widget-scene'>
-                            <div style='position: absolute; bottom: 20px; right: 30px; font-size: 60px;'>🌺</div>
-                            </div>
-
-                            可用CSS选择器：
-                            .widget - 组件容器
-                            .widget-time - 顶部文字
-                            .widget-scene - 场景区域
-                            支持常见CSS样式"></textarea>
-                    </div>
-                    <button class="save-btn" onclick="applyCustomWidget()"
-                            style="width: 100%; margin-bottom: 16px;">应用组件
-                    </button>
-                </div>
-            </div>
-            <div class="section-title">已有组件</div>
-            <div id="savedWidgetsList" style="padding: 0 20px;"></div>
-        </div>
 
         <!-- ========== 面具管理页面 - 开始 ========== -->
         <div class="mask-library-page" id="maskLibraryPage">
@@ -291,40 +257,6 @@
         </div>
         <!-- ========== 面具管理页面 - 结束 ========== -->
 
-        <!-- ========== 新增：文件夹浮层 ========== -->
-        <div class="folder-overlay" id="folderOverlay" onclick="closeFolder()">
-            <div class="folder-modal" onclick="event.stopPropagation()">
-                <div class="folder-header">
-                    <h3 id="folderName">文件夹名称</h3>
-                    <input type="text" id="folderNameInput" style="display: none;">
-                </div>
-                <div class="folder-grid-container" id="folderContentGrid">
-                    <!-- 文件夹内的图标将由JS动态生成到这里 -->
-                </div>
-            </div>
-        </div>
-        <div id="floatingBall">🐾</div>
-        <!-- 白色图标栏目 -->
-        <div class="icon-dock-panel" id="iconDockPanel">
-            <div class="dock-panel-header">
-                <div class="dock-panel-title">我的收藏</div>
-                <button class="dock-panel-close" onclick="closeIconDockPanel()">×</button>
-            </div>
-            <div class="dock-panel-content" id="dockPanelContent">
-                <div class="dock-panel-empty">拖动图标到这里收藏</div>
-            </div>
-        </div>
-        <!-- 悬浮球菜单 -->
-        <div class="floating-ball-menu" id="floatingBallMenu">
-            <div class="fb-menu-item" onclick="toggleIconDockPanel()">
-                <span class="fb-menu-icon">⭐</span>
-                <span class="fb-menu-label">图标收藏栏</span>
-            </div>
-            <div class="fb-menu-item" onclick="openSettings(); closeFloatingBallMenu()">
-                <span class="fb-menu-icon">⚙️</span>
-                <span class="fb-menu-label">设置</span>
-            </div>
-        </div>
         <!-- ========== 气泡库页面 (最终修正版) ========== -->
         <div class="bubble-library-page" id="bubbleLibraryPage">
             <div class="settings-header">
@@ -333,7 +265,6 @@
             </div>
 
             <div class="settings-content">
-                <!-- Tab切换 -->
                 <div class="bubble-tab-container">
                     <div class="bubble-tab active" data-tab="normal" onclick="switchBubbleTab('normal')">
                         学习模式
@@ -342,136 +273,21 @@
                         密友聊天
                     </div>
                 </div>
-
-                <!-- 普通聊天气泡编辑 -->
+                <!-- 普通聊天气泡预设列表 -->
                 <div class="bubble-editor-container" id="normalBubbleEditor">
-                    <div class="section-title">学习模式气泡样式</div>
-
-                    <div class="bubble-code-section">
-                        <div class="bubble-code-header">
-                            <span class="bubble-code-label">📤 发送气泡CSS</span>
-                            <button class="bubble-example-btn" onclick="loadBubbleExample('normal', 'sent')">
-                                示例代码
-                            </button>
-                        </div>
-                        <textarea class="bubble-code-input" id="normalSentBubbleCode"
-                                  placeholder="在此输入发送气泡的CSS代码..." rows="6"></textarea>
-                        <div class="bubble-preview-box">
-                            <div class="preview-label">预览效果：</div>
-                            <div class="preview-chat-container">
-                                <div class="preview-message sent" id="normalSentPreview">
-                                    <div class="preview-bubble">这是发送的消息</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bubble-code-section">
-                        <div class="bubble-code-header">
-                            <span class="bubble-code-label">📥 接收气泡CSS</span>
-                            <button class="bubble-example-btn" onclick="loadBubbleExample('normal', 'received')">
-                                示例代码
-                            </button>
-                        </div>
-                        <textarea class="bubble-code-input" id="normalReceivedBubbleCode"
-                                  placeholder="在此输入接收气泡的CSS代码..." rows="6"></textarea>
-                        <div class="bubble-preview-box">
-                            <div class="preview-label">预览效果：</div>
-                            <div class="preview-chat-container">
-                                <div class="preview-message received" id="normalReceivedPreview">
-                                    <div class="preview-bubble">这是接收的消息</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bubble-action-buttons">
-                        <button class="bubble-btn bubble-btn-save-preset" onclick="saveBubblePreset('normal')">
-                            💾 保存为预设
-                        </button>
-                        <button class="bubble-btn bubble-btn-reset" onclick="resetBubbleStyle('normal')">
-                            🔄 清空输入
-                        </button>
-                    </div>
-
-                    <div class="preset-library-section">
-                        <div class="preset-library-header">
-                            <span class="section-title">我的预设</span>
-                        </div>
+                    <!-- 样式调整：移除 margin-top 和背景，使其更紧凑 -->
+                    <div class="preset-library-section" style="margin-top: 0; background: transparent; padding: 0;">
                         <div class="preset-list" id="normalPresetList">
                             <div class="preset-empty">暂无保存的预设</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- 密友聊天气泡编辑 -->
+                <!-- 密友聊天气泡预设列表 -->
                 <div class="bubble-editor-container" id="sweetheartBubbleEditor" style="display: none;">
-                    <div class="section-title">密友聊天气泡样式</div>
-
-                    <div class="bubble-code-section">
-                        <div class="bubble-code-header">
-                            <span class="bubble-code-label">💕 发送气泡CSS</span>
-                            <button class="bubble-example-btn" onclick="loadBubbleExample('sweetheart', 'sent')">
-                                示例代码
-                            </button>
-                        </div>
-                        <textarea class="bubble-code-input" id="sweetheartSentBubbleCode"
-                                  placeholder="在此输入发送气泡的CSS代码..." rows="6"></textarea>
-                        <div class="bubble-preview-box">
-                            <div class="preview-label">预览效果：</div>
-                            <div class="preview-chat-container">
-                                <div class="preview-message sent" id="sweetheartSentPreview">
-                                    <div class="preview-bubble">这是发送的消息</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bubble-code-section">
-                        <div class="bubble-code-header">
-                            <span class="bubble-code-label">💝 接收气泡CSS</span>
-                            <button class="bubble-example-btn" onclick="loadBubbleExample('sweetheart', 'received')">
-                                示例代码
-                            </button>
-                        </div>
-                        <textarea class="bubble-code-input" id="sweetheartReceivedBubbleCode"
-                                  placeholder="在此输入接收气泡的CSS代码..." rows="6"></textarea>
-                        <div class="bubble-preview-box">
-                            <div class="preview-label">预览效果：</div>
-                            <div class="preview-chat-container">
-                                <div class="preview-message received" id="sweetheartReceivedPreview">
-                                    <div class="preview-bubble">这是接收的消息</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bubble-action-buttons">
-                        <button class="bubble-btn bubble-btn-save-preset" onclick="saveBubblePreset('sweetheart')">
-                            💾 保存为预设
-                        </button>
-                        <button class="bubble-btn bubble-btn-reset" onclick="resetBubbleStyle('sweetheart')">
-                            🔄 清空输入
-                        </button>
-                    </div>
-
-                    <div class="preset-library-section">
-                        <div class="preset-library-header">
-                            <span class="section-title">我的预设</span>
-                        </div>
+                    <div class="preset-library-section" style="margin-top: 0; background: transparent; padding: 0;">
                         <div class="preset-list" id="sweetheartPresetList">
                             <div class="preset-empty">暂无保存的预设</div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- 使用说明 -->
-                <div class="bubble-help-section">
-                    <div class="section-title">💡 使用提示</div>
-                    <div class="bubble-help-content">
-                        <p>• 输入CSS后，上方会自动预览</p>
-                        <p>• 满意后点击"保存为预设"即可存入下方列表</p>
-                        <p>• 在预设列表中点击"应用"来更换聊天气泡</p>
                     </div>
                 </div>
             </div>
@@ -937,24 +753,6 @@
                         </div>
                         <div class="settings-section">
                             <div class="section-title">AI 设置</div>
-                            <div class="settings-item">
-                                <div class="settings-icon"
-                                     style="background: linear-gradient(135deg, #a1c4fd, #c2e9fb);">
-                                    🧠
-                                </div>
-                                <div class="settings-info">
-                                    <div class="settings-label">AI记忆轮数</div>
-                                    <div class="settings-desc">调整AI能记住的对话轮数(默认10轮)</div>
-                                </div>
-                                <div class="settings-action">
-                                    <div class="number-stepper">
-                                        <button class="stepper-btn" id="decreaseNormalMemoryRounds">-</button>
-                                        <input type="number" class="stepper-input" id="normalMemoryRoundsInput"
-                                               value="10" min="1" max="250">
-                                        <button class="stepper-btn" id="increaseNormalMemoryRounds">+</button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                         <!-- 未来可以在这里添加更多设置项 -->
                     </div>
@@ -1151,23 +949,6 @@
                     </div>
                     <div class="settings-section">
                         <div class="section-title">AI 设置</div>
-                        <div class="settings-item">
-                            <div class="settings-icon" style="background: linear-gradient(135deg, #a1c4fd, #c2e9fb);">
-                                🧠
-                            </div>
-                            <div class="settings-info">
-                                <div class="settings-label">AI记忆轮数</div>
-                                <div class="settings-desc">调整AI能记住的对话轮数(默认10轮)</div>
-                            </div>
-                            <div class="settings-action">
-                                <div class="number-stepper">
-                                    <button class="stepper-btn" id="decreaseMemoryRounds">-</button>
-                                    <input type="number" class="stepper-input" id="memoryRoundsInput" value="10" min="1"
-                                           max="250">
-                                    <button class="stepper-btn" id="increaseMemoryRounds">+</button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                     <div class="settings-section">
                         <div class="section-title">🔧 调试工具</div>

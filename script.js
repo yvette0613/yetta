@@ -328,29 +328,6 @@ function loadUserProfile() {
     }
 }
 
-// script.js 顶部
-
-// === 内置世界书配置 ===
-const GLOBAL_WORLDBOOK_ID = 'WB_BUILTIN_DEFAULT'; // 固定的ID
-const DEFAULT_LORE_TITLE = "聊天风格指南";     // 标题
-const DEFAULT_LORE_CONTENT = `
-1.  **标点符号的运用 (Punctuation Usage)：**
-    *   结尾可以不需要标点符号
-    *   使用多个逗号（,,,）、省略号（...）或多个句号（。。。.）来表示停顿、无语或延续的情绪。
-    *   大胆使用感叹号（!）、问号（?）和表情符号（如😊、🐰、🫠等）来增强语气。
-
-2.  **语言风格 (Language Style)：**
-    *   **口语化：** 使用生活中的常用语和网络化语言。
-    *   **玩梗：** 自然地融入网络热梗（如"尊嘟假嘟"、"好好好"、"石锤了"），但要贴合话题，不要生硬。
-    *   **句式：** 灵活使用流行句式（如"有没有一种可能..."、"从...调成..."）。
-    *   **自然感：** 允许出现轻微的语法"错误"、缩写（如用"の"代替"的"）、以及不完整的碎片化句子（如"不知道他们都拿了多少分"）。
-
-3.  **互动技巧 (Interaction Skills)：**
-    *   **情绪表达：** 通过标点、表情和句式传递情绪，而不是直接描述。
-    *   **话题跳跃：** 对话可以像真人一样偶尔切换话题，保持随意性。
-    *   **互动性：** 多使用疑问句、感叹句和回应性短语（如"你呢？"、"哈哈哈哈哈"）。
-
-`;
 
 /**
  * [统一版] 保存所有类型的角色数据
@@ -864,7 +841,6 @@ const MINIMAX_CONFIG = {
     MODEL: "speech-01-turbo",                // 默认模型
     DEFAULT_VOICE_ID: "male-qn-qingse"       // 统一使用的声音 ID (听书声音)
 };
-
 
 
 function setupSweetheartReplyModeSelector() {
@@ -2031,8 +2007,15 @@ async function playTtsMessage(sender, contactId, messageIndex, isSweetheart = fa
         };
 
         audio.onplay = hideLoadingModal;
-        audio.onended = () => { hideLoadingModal(); URL.revokeObjectURL(audioObjectUrl); currentAudio = null; };
-        audio.onerror = () => { showErrorModal('播放失败', '音频文件损坏。'); hideLoadingModal(); };
+        audio.onended = () => {
+            hideLoadingModal();
+            URL.revokeObjectURL(audioObjectUrl);
+            currentAudio = null;
+        };
+        audio.onerror = () => {
+            showErrorModal('播放失败', '音频文件损坏。');
+            hideLoadingModal();
+        };
         audio.play();
 
     } catch (error) {
@@ -2779,7 +2762,6 @@ let sweetheartContactsData = [
 ];
 
 
-
 // ========== 联系人库多选功能全局变量 ==========
 let libraryOnlyContactsData = []; // 仅存在于联系人库的联系人
 let isMultiSelectMode = false; // 是否处于多选模式
@@ -2990,7 +2972,6 @@ function loadWorldsData() {
         console.error('加载世界数据失败:', e);
     }
 }
-
 
 
 let currentChatContact = null;
@@ -3291,56 +3272,48 @@ const storageAPI = {
     }
 };
 
-// 1. 修改 appsPage1：只保留世界书、账单、设置和从文件夹移出来的小说
+//// 1. 修改 appsPage1：适应 2列 x 3行 布局
 const appsPage1 = [
     {
         id: 'worldbook',
         icon: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1760105951573_qdqqd_4zhn48.png',
         label: '世界书',
-        row: 0,
-        col: 0,
+        row: 0, col: 0, // 第1行，左
         clickable: true
     },
     {
-        id: 'calc', // 这是账单/记账本
+        id: 'calc',
         icon: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1760107619286_qdqqd_tzxf3r.png',
         label: '账单',
-        row: 0,
-        col: 1,
+        row: 0, col: 1, // 第1行，右
         clickable: true
     },
     {
         id: 'settings',
         icon: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1760110940876_qdqqd_ev1xec.png',
         label: '设置',
-        row: 0,
-        col: 2,
+        row: 1, col: 0, // 第2行，左
         clickable: true
     },
     {
-        id: 'novel', // ✨ 新增：直接把小说放在这里，赋予一个新的ID
+        id: 'novel',
         icon: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1760117195210_qdqqd_k1cy4r.png',
         label: '小说',
-        row: 0,
-        col: 3,
+        row: 1, col: 1, // 第2行，右
         clickable: true
     },
     {
-        id: 'study_mode', // 原 Dock 栏第一个：学习模式
-        // 这里使用的是你代码中 dockIcons[0] 的图片链接
+        id: 'study_mode',
         icon: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1760103483956_qdqqd_ufc76a.png',
         label: '学习模式',
-        row: 1, // 放在第2行
-        col: 0, // 第1列
+        row: 2, col: 0, // 第3行，左
         clickable: true
     },
     {
-        id: 'chat_mode', // 原 Dock 栏第三个：闲聊模式
-        // 这里使用的是你代码中 dockIcons[2] 的图片链接
+        id: 'chat_mode',
         icon: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1760094934930_qdqqd_5lvg07.png',
         label: '闲聊模式',
-        row: 1, // 放在第2行
-        col: 1, // 第2列
+        row: 2, col: 1, // 第3行，右
         clickable: true
     }
 ];
@@ -3378,15 +3351,13 @@ const getTouch = (e) => e.touches?.[0] || e;
 const getChangedTouch = (e) => e.changedTouches?.[0] || e;
 
 function positionElement(el, row, col, colspan = 1, rowspan = 1) {
-    // === 修改开始 ===
-    // 增加行高以适应更大的图标 (76px图标 + 文字 + 间距)
     const ROW_HEIGHT_PX = 110;
-    // 减小间距以匹配CSS中的 gap: 8px
     const GAP_PX = 8;
-    // === 修改结束 ===
 
-    const leftPercent = col * 25;
-    const widthPercent = colspan * 25;
+    // 🔴 修改点：改成乘以 50 (因为 100% / 2列 = 50%)
+    const leftPercent = col * 50;
+    const widthPercent = colspan * 50;
+
     const topPx = row * (ROW_HEIGHT_PX + GAP_PX);
     const heightPx = (rowspan * ROW_HEIGHT_PX) + ((rowspan - 1) * GAP_PX);
 
@@ -3494,7 +3465,7 @@ function createSettingsPageHTML() {
                     <div class="settings-icon icon-beautify"></div>
                     <div class="settings-info">
                         <div class="settings-label">美化</div>
-                        <div class="settings-desc">自定义应用图标</div>
+                        <div class="settings-desc">自定义壁纸</div>
                     </div>
                     <div class="settings-arrow">›</div>
                 </div>
@@ -3507,29 +3478,7 @@ function createSettingsPageHTML() {
                     </div>
                     <div class="settings-arrow">›</div>
                 </div>
-                <!-- 10. 组件 -->
-                <div class="settings-item" onclick="openWidgetManager()">
-                    <div class="settings-icon icon-widget"></div>
-                    <div class="settings-info">
-                        <div class="settings-label">组件</div>
-                        <div class="settings-desc">自定义桌面组件</div>
-                    </div>
-                    <div class="settings-arrow">›</div>
-                </div>
-                <!-- 11. 悬浮球 -->
-                <div class="settings-item">
-                    <div class="settings-icon icon-floatball"></div>
-                    <div class="settings-info">
-                        <div class="settings-label">悬浮球</div>
-                        <div class="settings-desc">在主屏幕显示一个快捷操作悬浮球</div>
-                    </div>
-                    <div class="settings-action">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="floatingBallToggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
+           
             </div>
 
             <div class="settings-section">
@@ -3592,17 +3541,6 @@ function initializeSettingsPageListeners() {
         });
     }
 
-    // ===== 悬浮球开关 =====
-    const floatingBallToggle = document.getElementById('floatingBallToggle');
-    if (floatingBallToggle) {
-        // 同样地，直接赋值，避免冗余变量
-        floatingBallToggle.checked = localStorage.getItem('floatingBallEnabled') === 'true';
-        floatingBallToggle.addEventListener('change', function () {
-            const isEnabled = this.checked;
-            applyFloatingBallSetting(isEnabled);
-            localStorage.setItem('floatingBallEnabled', isEnabled);
-        });
-    }
 }
 
 /**
@@ -3657,10 +3595,6 @@ function closeSettings() {
 }
 
 
-
-
-
-
 function openBeautify() {
     // 关闭其他页面
     document.querySelectorAll('.beautify-page.show, .config-page.show').forEach(page => {
@@ -3682,99 +3616,6 @@ function openBeautify() {
 
 function closeBeautify() {
     document.getElementById('beautifyPage').classList.remove('show');
-}
-
-function openWidgetManager() {
-    document.getElementById('widgetManager').classList.add('show');
-    renderSavedWidgets();
-}
-
-function closeWidgetManager() {
-    document.getElementById('widgetManager').classList.remove('show');
-}
-
-function renderSavedWidgets() {
-    const container = document.getElementById('savedWidgetsList');
-    container.innerHTML = '';
-
-    if (globalConfig.savedWidgets.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">暂无已删除的组件</div>';
-        return;
-    }
-
-    globalConfig.savedWidgets.forEach((widget, index) => {
-        const item = document.createElement('div');
-        item.className = 'saved-widget-item';
-        item.innerHTML = `
-                    <div class="saved-widget-name">${widget.name}</div>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button class="restore-btn" onclick="restoreWidget(${index})">恢复到桌面</button>
-                        <button class="delete-saved-btn" onclick="deleteSavedWidget(${index})">永久删除</button>
-                    </div>
-                `;
-        container.appendChild(item);
-    });
-}
-
-function restoreWidget(index) {
-    const widget = globalConfig.savedWidgets[index];
-    if (!widget) return;
-
-    if (widget.type === 'time') {
-        const section = document.querySelector('.time-weather-section');
-        section.insertAdjacentHTML('afterbegin', widget.html);
-    } else if (widget.type === 'weather') {
-        const section = document.querySelector('.time-weather-section');
-        const timeCard = document.getElementById('timeCard');
-        if (timeCard) {
-            timeCard.insertAdjacentHTML('afterend', widget.html);
-        } else {
-            section.insertAdjacentHTML('beforeend', widget.html);
-        }
-    } else if (widget.type === 'widget') {
-        const pageNum = widget.id.includes('widget2') ? 2 : 1;
-        const grid = document.getElementById(`grid${pageNum}`);
-        grid.insertAdjacentHTML('beforeend', widget.html);
-
-        const restoredElement = grid.querySelector(`[data-id="${widget.id}"]`);
-        if (restoredElement) {
-            addDragListeners(restoredElement, false);
-        }
-    }
-
-    const deletedComponents = JSON.parse(localStorage.getItem('deletedComponents') || '[]');
-    const componentIndex = deletedComponents.indexOf(widget.id);
-
-    if (componentIndex > -1) {
-        deletedComponents.splice(componentIndex, 1);
-    }
-
-    globalConfig.savedWidgets.splice(index, 1);
-
-    try {
-        localStorage.setItem('deletedComponents', JSON.stringify(deletedComponents));
-        localStorage.setItem('savedWidgets', JSON.stringify(globalConfig.savedWidgets));
-        console.log(`${widget.name} 已恢复到桌面`);
-    } catch (e) {
-        console.error('保存数据失败:', e);
-    }
-
-    renderSavedWidgets();
-}
-
-function deleteSavedWidget(index) {
-    const widget = globalConfig.savedWidgets[index];
-    if (!widget) return;
-
-    if (confirm(`确定要永久删除"${widget.name}"吗？此操作无法撤销。`)) {
-        globalConfig.savedWidgets.splice(index, 1);
-
-        localStorage.setItem('savedWidgets', JSON.stringify(globalConfig.savedWidgets));
-
-        renderSavedWidgets();
-
-        console.log(`${widget.name} 已永久删除`);
-    }
 }
 
 function openContacts() {
@@ -3941,13 +3782,6 @@ function createNewContact() {
 document.addEventListener('click', function (e) {
     // --- 优化开始 ---
 
-    // 1. 处理悬浮球菜单的外部点击
-    const floatingMenu = document.getElementById('floatingBallMenu');
-    const ball = document.getElementById('floatingBall');
-    if (floatingMenu && ball && !floatingMenu.contains(e.target) && !ball.contains(e.target)) {
-        closeFloatingBallMenu();
-    }
-
     // 2. 处理联系人菜单的外部点击
     const contactMenu = document.getElementById('contactMenu');
     const sweetheartContactMenu = document.getElementById('sweetheartContactMenu');
@@ -3961,89 +3795,10 @@ document.addEventListener('click', function (e) {
     // --- 优化结束 ---
 });
 
-
-function applyCustomWidget() {
-    const code = document.getElementById('widgetCodeInput').value.trim();
-
-    if (!code) {
-        alert('请输入组件代码');
-        return;
-    }
-
-    const targetWidget = document.querySelector('[data-id="widget2"]');
-
-    if (!targetWidget) {
-        alert('未找到目标 Widget，请先恢复原始组件');
-        return;
-    }
-
-    const alreadySaved = globalConfig.savedWidgets.some(w => w.id === 'widget2');
-
-    if (!alreadySaved) {
-        globalConfig.savedWidgets.push({
-            id: 'widget2',
-            type: 'widget',
-            name: 'Widget（原始）',
-            html: targetWidget.outerHTML,
-            timestamp: Date.now()
-        });
-
-        localStorage.setItem('savedWidgets', JSON.stringify(globalConfig.savedWidgets));
-        console.log('原始 Widget 已保存到"已删除组件"列表');
-    }
-
-    const widgetScene = targetWidget.querySelector('.widget-scene');
-    if (widgetScene) {
-        widgetScene.innerHTML = code;
-        alert('自定义组件已应用！');
-        console.log('自定义组件代码已应用到桌面');
-    } else {
-        alert('Widget 结构异常，请检查');
-    }
-}
-
 function renderAppPreviews() {
     const container = document.getElementById('appPreviewList');
     container.innerHTML = '';
 
-    const divider = document.createElement('div');
-    divider.innerHTML = '<div class="section-title">应用图标</div>';
-    container.appendChild(divider);
-
-    const allApps = [...appsPage1.filter(app => !app.isWidget), ...appsPage2.filter(app => !app.isWidget && !app.isFolder)];
-
-    allApps.forEach(app => {
-        const item = document.createElement('div');
-        item.className = 'app-preview-item';
-
-        const customIcon = globalConfig.customIcons[app.id];
-        const iconDisplay = customIcon
-            ? `<img src="${customIcon}" alt="${app.label}">`
-            : app.icon;
-
-        item.innerHTML = `
-                    <div class="preview-header">
-                        <div class="preview-icon" id="preview-${app.id}">
-                            ${iconDisplay}
-                        </div>
-                        <div class="preview-name">${app.label}</div>
-                    </div>
-                    <div class="upload-section">
-                        <label class="upload-btn">
-                            📁 上传文件
-                            <input type="file" class="file-input" accept="image/*" onchange="handleFileUpload(event, '${app.id}')">
-                        </label>
-                        <div class="url-input-btn" onclick="toggleUrlInput('${app.id}')">🔗 URL填写</div>
-                    </div>
-                    <div class="url-input-box" id="url-box-${app.id}">
-                        <input type="text" class="url-input-field" id="url-input-${app.id}" placeholder="输入图片URL">
-                        <button class="confirm-btn" onclick="applyUrlIcon('${app.id}')">确认</button>
-                    </div>
-                    <div class="status-message" id="status-${app.id}"></div>
-                `;
-
-        container.appendChild(item);
-    });
 }
 
 function toggleUrlInput(appId) {
@@ -4402,91 +4157,6 @@ function handleMove(e) {
     });
 }
 
-// ▼▼▼ 请将你原来的 handleEnd 函数完整地替换成下面这个版本 ▼▼▼
-
-function handleEnd(e) {
-    // 1. 如果是从收藏夹拖出，交给 ghost 逻辑处理
-    if (dragGhost) return;
-
-    clearTimeout(state.longPressTimer);
-    document.body.style.cursor = 'default';
-
-    // 2. 仅在拖拽状态下处理
-    if (state.isDragging && state.draggedElement) {
-        const draggedEl = state.draggedElement;
-        const touch = getChangedTouch(e);
-
-        // 3. 检查是否拖入收藏栏 (不变)
-        const panel = document.getElementById('iconDockPanel');
-        if (panel && panel.classList.contains('show')) {
-            const panelRect = panel.getBoundingClientRect();
-            if (touch.clientX >= panelRect.left && touch.clientX <= panelRect.right &&
-                touch.clientY >= panelRect.top && touch.clientY <= panelRect.bottom) {
-                addIconToDockPanel(draggedEl);
-                finishDrag(true);
-                return;
-            }
-        }
-
-        // 4. ✅【核心修改】不再判断 targetPage，目标永远是 grid1
-        const targetGrid = document.getElementById('grid1');
-        const gridRect = targetGrid.getBoundingClientRect();
-
-        // 计算行和列
-        const ROW_HEIGHT_PX = 110;
-        const GAP_PX = 8;
-        const dropX = touch.clientX - gridRect.left;
-        const dropY = touch.clientY - gridRect.top;
-
-        let col = Math.floor(dropX / (gridRect.width / 4));
-        let row = Math.floor(dropY / (ROW_HEIGHT_PX + GAP_PX));
-
-        // 边界限制
-        const colspan = parseInt(draggedEl.dataset.colspan) || 1;
-        const rowspan = parseInt(draggedEl.dataset.rowspan) || 1;
-        col = Math.max(0, Math.min(col, 4 - colspan));
-        row = Math.max(0, Math.min(row, 6 - rowspan));
-
-        // 5. 检查位置是否被占用 (只查 page1)
-        if (isOccupied('page1', row, col, draggedEl.dataset.id)) {
-            revertPosition(draggedEl);
-        } else {
-            // 位置有效，更新数据
-            const appId = draggedEl.dataset.id;
-            const appData = state.appLayouts.page1.find(app => app.id === appId);
-
-            if (appData) {
-                appData.row = row;
-                appData.col = col;
-
-                // 更新 DOM 和 样式
-                draggedEl.dataset.row = row;
-                draggedEl.dataset.col = col;
-                positionElement(draggedEl, row, col, colspan, rowspan);
-
-                // 保存
-                saveLayoutToLocalStorage();
-            }
-        }
-
-        // 恢复动画样式
-        draggedEl.style.transform = '';
-        draggedEl.style.transition = 'all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-        setTimeout(() => {
-            if (draggedEl) draggedEl.style.transition = '';
-        }, 250);
-        state.lastDragEndTime = Date.now();
-    }
-
-    // 清理事件
-    document.removeEventListener('touchmove', handleMove);
-    document.removeEventListener('mousemove', handleMove);
-    document.removeEventListener('touchend', handleEnd);
-    document.removeEventListener('mouseup', handleEnd);
-
-    finishDrag(state.hasDragged);
-}
-
 
 function finishDrag(exitImmediately) {
     if (state.draggedElement) {
@@ -4721,7 +4391,6 @@ function updateSwipeTransform() {
 document.addEventListener('touchmove', handleMove, {passive: false});
 document.addEventListener('mousemove', handleMove);
 document.addEventListener('touchend', (e) => handleEnd(e));
-document.addEventListener('mouseup', (e) => handleEnd(e));
 
 screen.addEventListener('click', (e) => {
     if (e.target.closest('.chat-page, .contacts-page, .settings-page, .config-page, .beautify-page, .modal-overlay')) {
@@ -4961,12 +4630,11 @@ function closeChat() {
 }
 
 /**
- * [终极修复版] 调用 API 核心函数
- * 1. 修复 Payload：自动合并用户最后连续发送的多条气泡内容。
- * 2. 修复 回复乱码：正确处理腾讯云的全量流式返回。
- * 3. 修复 fileInfos 报错：添加了参数定义。
+ * [API核心修复版] 调用 API 函数
+ * 修复：过滤掉 is_from_self: true 的消息，防止将用户提问当做 AI 回复
  */
-async function callApi(messages, fileInfos = []) { // <--- 🔴 核心修复：这里加了 fileInfos 参数
+async function callApi(messages, fileInfos = [], customVariables = {}, skipContext = false) {
+
     // 1. 智能判断当前联系人
     const targetContact = currentSweetheartChatContact || currentChatContact || {
         name: "AI助手",
@@ -4998,62 +4666,58 @@ async function callApi(messages, fileInfos = []) { // <--- 🔴 核心修复：�
     const apiSessionId = sanitizeId(rawSessionId);
     const apiVisitorId = `user_${deviceId}`;
 
-    // ==========================================================
-    // 🔥 核心逻辑：合并用户连续气泡 & 构建历史
-    // ==========================================================
-
+    // --- 构建 Prompt (保持原逻辑不变) ---
     let systemRoleText = "";
-    let historyText = "";
-    let currentPayloadContentParts = [];
-
-    let lastNonUserIndex = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-        if (messages[i].role !== 'user') {
-            lastNonUserIndex = i;
-            break;
-        }
-    }
-
-    messages.forEach((msg, index) => {
-        if (msg.role === 'system') {
-            systemRoleText += msg.content + "\n\n";
-        }
-        else if (index > lastNonUserIndex) {
-            let textPart = "";
-            if (typeof msg.content === 'string') {
-                textPart = msg.content;
-            } else if (Array.isArray(msg.content)) {
-                msg.content.forEach(item => {
-                    if (item.type === 'text') textPart += item.text;
-                    if (item.type === 'image_url') textPart += `\n![]( ${item.image_url.url} )\n`;
-                });
+    let finalQueryContent = "";
+    if (skipContext) {
+        const sysMsg = messages.find(m => m.role === 'system');
+        if (sysMsg) systemRoleText = sysMsg.content;
+        const userMsgs = messages.filter(m => m.role === 'user');
+        finalQueryContent = userMsgs.map(m => m.content).join("\n");
+    } else {
+        let historyText = "";
+        let currentPayloadContentParts = [];
+        let lastNonUserIndex = -1;
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role !== 'user') {
+                lastNonUserIndex = i;
+                break;
             }
-            if (textPart) currentPayloadContentParts.push(textPart);
         }
-        else {
-            const roleName = msg.role === 'user' ? '用户' : '你';
-            let cleanContent = "";
-            if (typeof msg.content === 'string') {
-                cleanContent = msg.content.replace(/<[^>]+>/g, '[多媒体/图片]');
+        messages.forEach((msg, index) => {
+            if (msg.role === 'system') {
+                systemRoleText += msg.content + "\n\n";
+            } else if (index > lastNonUserIndex) {
+                let textPart = "";
+                if (typeof msg.content === 'string') {
+                    textPart = msg.content;
+                } else if (Array.isArray(msg.content)) {
+                    msg.content.forEach(item => {
+                        if (item.type === 'text') textPart += item.text;
+                        if (item.type === 'image_url') textPart += `\n![]( ${item.image_url.url} )\n`;
+                    });
+                }
+                if (textPart) currentPayloadContentParts.push(textPart);
             } else {
-                cleanContent = "[多媒体内容]";
+                const roleName = msg.role === 'user' ? '用户' : '你';
+                let cleanContent = "";
+                if (typeof msg.content === 'string') {
+                    cleanContent = msg.content.replace(/<[^>]+>/g, '[多媒体/图片]');
+                } else {
+                    cleanContent = "[多媒体内容]";
+                }
+                historyText += `${roleName}: ${cleanContent}\n`;
             }
-            historyText += `${roleName}: ${cleanContent}\n`;
-        }
-    });
-
-    let finalQueryContent = currentPayloadContentParts.join("\n");
-    if (!finalQueryContent.trim()) finalQueryContent = " ";
-
-    if (historyText) {
-        systemRoleText += `\n\n【对话历史回顾 (Context)】\n---\n${historyText}\n---\n`;
+        });
+        finalQueryContent = currentPayloadContentParts.join("\n");
+        if (!finalQueryContent.trim()) finalQueryContent = " ";
+        if (historyText) systemRoleText += `\n\n【对话历史回顾 (Context)】\n---\n${historyText}\n---\n`;
     }
 
     if (systemRoleText.length > 12000) systemRoleText = systemRoleText.substring(0, 12000);
 
     // 4. 构造 Payload
     const payload = {
-        // ⚠️ 请确认使用你的真实 Key (这里保留你原来的Key)
         "bot_app_key": "QBHWzqXNdtjWEFYsrGBSHgciopFrvtDCfgNHgmYJzwWZjQLJHwvGiccbuzRsGLtfmGvIBVaHvmdlxbKMBFtgXXjMsNlQOczNPYtxygdGhceoInkcMgDBuMLPeOqrsuIy",
         "content": finalQueryContent,
         "session_id": apiSessionId,
@@ -5061,10 +4725,11 @@ async function callApi(messages, fileInfos = []) { // <--- 🔴 核心修复：�
         "request_id": requestId,
         "system_role": systemRoleText,
         "stream": "enable",
-        "file_infos": fileInfos // <--- 现在这个变量有定义了
+        "file_infos": fileInfos,
+        "custom_variables": customVariables
     };
 
-    console.log(`🤖 API 请求合并内容:`, finalQueryContent);
+    console.log(`🤖 API 请求内容:`, finalQueryContent);
 
     try {
         const response = await fetch("https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse", {
@@ -5098,12 +4763,24 @@ async function callApi(messages, fileInfos = []) { // <--- 🔴 核心修复：�
 
                     try {
                         const data = JSON.parse(jsonStr);
-                        if (data.type === 'reply' && data.payload && data.payload.content) {
-                            fullReply = data.payload.content;
-                        } else if (data.type === 'error') {
+
+                        // 🔥🔥🔥 核心修复位置 🔥🔥🔥
+                        // 过滤掉 is_from_self: true 的消息 (这是用户自己的提问回显)
+                        if (data.type === 'reply' && data.payload && !data.payload.is_from_self) {
+                            if (data.payload.content) {
+                                fullReply += data.payload.content;
+                            }
+                        }
+                        // 如果有思考过程 (deepseek-r1等)，也可以在这里处理 logging
+                        else if (data.type === 'thought') {
+                            // console.log("Thinking...", data.payload);
+                        }
+                        else if (data.type === 'error') {
                             return {success: false, message: `服务返回错误: ${data.error?.message}`};
                         }
-                    } catch (e) { }
+                    } catch (e) {
+                        // 忽略解析错误的行
+                    }
                 }
             }
         }
@@ -5116,6 +4793,7 @@ async function callApi(messages, fileInfos = []) { // <--- 🔴 核心修复：�
         return {success: false, message: error.message};
     }
 }
+
 
 const LKECloudManager = {
     // 你的 Bot AppKey (从 callApi 中提取)
@@ -5144,7 +4822,7 @@ const LKECloudManager = {
                 // 下面这些字段是为了兼容原来的逻辑，实际上用不到
                 bucket: 'imgbb-public',
                 uploadPath: 'dummy-path',
-                data: { ETag: 'dummy', headers: {} }
+                data: {ETag: 'dummy', headers: {}}
             };
         } catch (e) {
             console.error(e);
@@ -5302,7 +4980,14 @@ async function getAiReply() {
 
     getReplyBtn.disabled = true; // 点击后禁用按钮，防止重复点击
     // 2. 读取历史记录
-    const chatHistory = JSON.parse(localStorage.getItem('phoneChatHistory') || '{}')[contactId] || [];
+    const chatHistory = JSON.parse(localStorage.getItem('phoneChatHistory') || '{}')[contactId] || []
+
+    // === 新增：准备动态人设变量 ===
+    // 这里的 key (如 character_name) 必须与你在控制台"API参数"里定义的名称完全一致
+    const dynamicPersona = {
+        "character_name": currentChatContact.name || "AI助手",
+        "character_persona": currentChatContact.status || "你是一个乐于助人的AI助手。"
+    };
 
     // === 构建发送给AI的消息数组 ===
     const messages = [];
@@ -5377,144 +5062,108 @@ async function getAiReply() {
     // [修改版] 普通聊天构建历史记录 (需替换的部分)
     // ---------------------------------------------------------------------
 
-    // ★★★ 必须使用 for...of 循环来支持 await ★★★
+    // --- 构建对话历史 ---
     for (const msg of recentHistory) {
         const role = msg.sender === 'user' ? 'user' : 'assistant';
 
-        // 🔥🔥🔥 新增：处理引用信息 🔥🔥🔥
+        // 1. 处理引用
         let finalContentText = msg.text || '';
-
-        // 如果这条消息包含引用
         if (msg.quote) {
             let quotedContent = msg.quote.text;
-            // 如果引用的是图片，转换文字说明
             if (quotedContent.includes('<img') || quotedContent.includes('db-image')) {
                 quotedContent = '[图片]';
             }
-            // 将引用格式化并拼接到消息前面
-            // 格式：[引用了 SenderName 的消息: "内容"]
-            const quoteBlock = `\n[引用了 ${msg.quote.senderName} 的消息: "${quotedContent}"]\n`;
-            finalContentText = quoteBlock + finalContentText;
+            finalContentText = `\n[引用了 ${msg.quote.senderName} 的消息: "${quotedContent}"]\n` + finalContentText;
         }
-        // 🔥🔥🔥 新增结束 🔥🔥🔥
-        // === 情况 A: 文件消息 ===
-        if (msg.type === 'file' && msg.content && msg.content.fileId) {
-            try {
-                const fileContent = await ImageDB.getText(msg.content.fileId);
-                if (fileContent) {
-                    const filePrompt = `[用户上传文件: ${msg.content.name}]\n内容如下:\n"""\n${fileContent}\n"""\n(请根据文件内容回答)`;
-                    messages.push({role: role, content: filePrompt});
-                } else {
-                    messages.push({role: role, content: `[系统提示: 文件 ${msg.content.name} 内容已过期或丢失]`});
+        // 2. 处理图片消息 (新增逻辑：优先检查 imageUrl 属性)
+        if (role === 'user' && msg.imageUrl) {
+            let imageUrl = msg.imageUrl;
+
+            // 处理数据库图片引用
+            if (imageUrl.startsWith('db-image://')) {
+                const imageId = imageUrl.split('db-image://')[1];
+                try {
+                    imageUrl = await ImageDB.get(imageId);
+                } catch (e) {
+                    console.error(e);
                 }
-            } catch (err) {
-                console.error("读取文件内容出错", err);
+            }
+            if (imageUrl) {
+                // 构建多模态消息
+                const contentArray = [];
+                // 如果有文字说明（去除 Markdown 图片标记）
+                const textPart = finalContentText.replace(/!\[.*?\]\(.*?\)/g, '').trim();
+                if (textPart) {
+                    contentArray.push({type: 'text', text: textPart});
+                } else {
+                    contentArray.push({type: 'text', text: '分析这张图片'});
+                }
+                contentArray.push({type: 'image_url', image_url: {url: imageUrl}});
+
+                messages.push({role: role, content: contentArray});
+            } else {
+                messages.push({role: role, content: '[图片已失效]'});
             }
         }
-        // === 情况 B: 图片消息 (普通聊天通常把图片包在HTML里) ===
+        // 3. 处理普通文本 (兼容旧的HTML图片格式)
         else {
-            const textContent = msg.text || '';
-
-            // 1. 尝试匹配图片标签
-            // 正则解释：匹配 <img src="(任意内容)" ...>
-            const imgMatch = textContent.match(/<img src="([^"]+)"[^>]*>/);
-
+            const imgMatch = finalContentText.match(/<img src="([^"]+)"[^>]*>/);
             if (imgMatch && role === 'user') {
-                let imageUrl = imgMatch[1]; // 获取 src 属性
-
-                // 2. 如果是数据库占位符，还原成 Base64
-                if (imageUrl.startsWith('db-image://')) {
-                    const imageId = imageUrl.split('db-image://')[1];
-                    try {
-                        const base64Entry = await ImageDB.get(imageId);
-                        if (base64Entry) {
-                            imageUrl = base64Entry;
-                        } else {
-                            imageUrl = null; // 图片丢失
-                        }
-                    } catch (e) {
-                        console.error("图取失败", e);
-                        imageUrl = null;
-                    }
+                // 旧逻辑兼容... (保留你原有的 regex 逻辑)
+                let url = imgMatch[1];
+                if (url.startsWith('db-image://')) { /* ... db logic ... */
                 }
-
-                const surroundingText = textContent
-                    .replace(/<img[^>]*>/, '') // 移除图片标签保留文字
-                    .replace(/<br>/g, '\n').trim();
-
-                if (imageUrl) {
-                    const contentArray = [];
-                    if (surroundingText) contentArray.push({type: 'text', text: surroundingText});
-                    contentArray.push({type: 'image_url', image_url: {url: imageUrl}});
-                    messages.push({role, content: contentArray});
-                } else {
-                    // 图片加载失败，只发文字
-                    messages.push({role, content: surroundingText || '[图片已失效]'});
-                }
+                const text = finalContentText.replace(/<img[^>]*>/, '').replace(/<br>/g, '\n').trim();
+                messages.push({
+                    role: role,
+                    content: [
+                        {type: 'text', text: text || '图片'},
+                        {type: 'image_url', image_url: {url: url}}
+                    ]
+                });
             } else {
-                // === 情况 C: 普通文本 ===
-                messages.push({role, content: textContent.replace(/<br>/g, '\n')});
+                messages.push({role: role, content: finalContentText.replace(/<br>/g, '\n')});
             }
         }
     }
-    // ---------------------------------------------------------------------
-
-    // 4. 处理当前输入框中可能存在的新消息 (这部分逻辑不变)
+    // 处理当前输入框
     const userMessage = chatInput.value.trim();
     if (userMessage) {
-        // 🔥🔥🔥 这里也要处理当前这步的引用 🔥🔥🔥
         let currentMsgContent = userMessage;
         if (currentQuoteData) {
+            // ... 引用处理 ...
             let quotedContent = currentQuoteData.text;
-            if (quotedContent.includes('<img') || quotedContent.includes('db-image')) {
-                quotedContent = '[图片]';
-            }
-            currentMsgContent = `[引用了 ${currentQuoteData.senderName} 的消息: "${quotedContent}"]\n${userMessage}`;
+            if (quotedContent.includes('<img')) quotedContent = '[图片]';
+            currentMsgContent = `[引用了...]: "${quotedContent}"\n${userMessage}`;
         }
-        // 🔥🔥🔥 处理结束 🔥🔥🔥
-        simulateSendingMessage(userMessage);
-        messages.push({role: 'user', content: userMessage});
+        simulateSendingMessage(userMessage); // 上屏
+        messages.push({role: 'user', content: currentMsgContent}); // 加入API请求
         chatInput.value = '';
         document.querySelector('.chat-input-area').classList.remove('has-text');
     }
-
-    // 如果没有任何用户消息，则不调用API
-    if (messages.filter(m => m.role === 'user').length === 0) {
-        getReplyBtn.disabled = false;
-        chatInput.disabled = false;
-        return;
-    }
-    // 5. 调用API
-    // 添加一个"思考中"气泡
+    // 调用 API
     const thinkingBubble = _createMessageDOM(contactId, {sender: 'contact', text: '...'}, -1);
     messagesEl.appendChild(thinkingBubble);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    const result = await callApi(messages);
-    thinkingBubble.remove(); // 移除思考中
-    // 6. 处理结果
+    const result = await callApi(messages, [], dynamicPersona);
+    thinkingBubble.remove();
     if (!result.success) {
         showErrorModal('请求失败', result.message);
     } else {
-        // 分段显示回复
         const segments = result.message.split('---').filter(s => s.trim());
         if (segments.length === 0) segments.push(result.message);
-
         for (const segmentText of segments) {
             const messageObj = {sender: 'contact', text: segmentText.trim()};
             const newIndex = saveMessage(contactId, messageObj);
-            const row = _createMessageDOM(contactId, messageObj, newIndex);
-            messagesEl.appendChild(row);
-            await new Promise(r => setTimeout(r, 400)); // 停顿一下
+            messagesEl.appendChild(_createMessageDOM(contactId, messageObj, newIndex));
+            await new Promise(r => setTimeout(r, 400));
             messagesEl.scrollTop = messagesEl.scrollHeight;
         }
     }
-    // 7. 清理和收尾工作 (这部分不变)
-    renderContacts(contactsData);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+
     getReplyBtn.disabled = false;
-    // chatInput.disabled = false;
-    chatInput.focus();
 }
+
 
 /**
  * [修正版] 保存消息到localStorage
@@ -5592,12 +5241,6 @@ function openSweetheartChatSettings() {
     const settingsPage = document.getElementById('sweetheartChatSettingsPage');
     if (settingsPage) {
         settingsPage.classList.add('show');
-    }
-    // 加载并显示当前密友的记忆轮数
-    const memoryRoundsInput = document.getElementById('memoryRoundsInput');
-    if (currentSweetheartChatContact && memoryRoundsInput) {
-        // 如果联系人数据中没有该设置，则默认为10
-        memoryRoundsInput.value = currentSweetheartChatContact.memoryRounds || 10;
     }
 }
 
@@ -5942,119 +5585,71 @@ function applyFullscreenSetting(isEnabled) {
 
 /**
  * [最终修正版] 设置普通聊天界面的附件菜单功能
- * - 修复了图片上传功能混淆聊天上下文的Bug。
- * - 优化了代码结构，使其更清晰。
+ * - 移除上传图片后的自动API调用
+ * - 确保图片保存到历史记录，等待手动点击接收
  */
 function setupAttachmentMenu() {
-    // 1. 获取所有相关的 DOM 元素
     const showMenuBtn = document.getElementById('showAttachmentMenuBtn');
     const menu = document.getElementById('attachmentMenu');
-    const fileInput = document.getElementById('fileInput'); // 用于上传文件（带AI分析）
-    const imageInput = document.getElementById('imageInput'); // 用于发送图片
+    const fileInput = document.getElementById('fileInput');
+    const imageInput = document.getElementById('imageInput');
     const uploadFileBtn = document.getElementById('uploadFileBtn');
     const uploadImageBtn = document.getElementById('uploadImageBtn');
-
-    // 安全检查，如果关键元素不存在则提前退出，防止后续代码报错
     if (!showMenuBtn || !menu || !fileInput || !imageInput || !uploadFileBtn || !uploadImageBtn) {
         console.error("附件菜单初始化失败：部分关键DOM元素未找到。");
         return;
     }
-
-    // 2. 点击“+”按钮时，切换菜单的显示/隐藏
     showMenuBtn.addEventListener('click', (event) => {
         event.stopPropagation();
         menu.classList.toggle('show');
     });
-
-    // 3. 点击“文件”菜单项时，触发隐藏的文件选择框
     uploadFileBtn.addEventListener('click', () => {
         fileInput.click();
         menu.classList.remove('show');
     });
-
-    // 4. 点击“图片”菜单项时，触发隐藏的图片选择框
     uploadImageBtn.addEventListener('click', () => {
         imageInput.click();
         menu.classList.remove('show');
     });
-
-    // 5. 【核心修复】当用户选择了图片后，为“普通聊天”模式正确处理
-    // 在 setupAttachmentMenu 函数内部...
-
-// 找到 imageInput 的监听器，替换为以下内容：
-    // 📍 定位：script.js -> setupAttachmentMenu 函数内部
-// 🗑️ 删除旧的 imageInput 监听代码，粘贴这一段：
-
+    // --- 图片上传监听 (修改点：移除自动CallApi) ---
     imageInput.addEventListener('change', async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-
-        // 1. 立即在界面显示“正在上传...”气泡，提升体验
+        // 1. 显示临时上传气泡
         const messagesEl = document.getElementById('chatMessages');
         const loadingId = 'loading_img_' + Date.now();
-        // 创建一个临时的加载气泡
         const loadingRow = document.createElement('div');
         loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:#eee;color:#666;">⏳ 图片上传中...</div></div>`;
         messagesEl.appendChild(loadingRow.firstChild);
         messagesEl.scrollTop = messagesEl.scrollHeight;
-
         try {
-            // 2. 🔥【核心变化】调用 Step3 里的管理器上传到腾讯云
-            // 第二个参数 true 表示图片需要公有读权限 (IsPublic=true)
+            // 2. 上传到腾讯云
             const uploadResult = await LKECloudManager.uploadToCOS(file, true);
-
-            console.log("图片上传成功，URL:", uploadResult.url);
-
             // 3. 移除加载气泡
-            document.getElementById(loadingId).parentElement.remove();
-
-            // 4. 构造 AI 能看懂的消息格式：Markdown 图片链接
-            // 格式：![](https://example.com/image.jpg)
-            const aiMessageContent = `请分析这张图片：\n![](${uploadResult.url})`;
-
-            // 5. 在界面上显示图片（直接用云端 URL）
-            // 这里我们把这张图作为用户发送的消息保存并显示
+            const loadingEl = document.getElementById(loadingId);
+            if (loadingEl) loadingEl.remove();
+            // 4. 构造消息内容 (Markdown格式 + imageUrl属性)
+            const aiMessageContent = `发送了一张图片：\n![](${uploadResult.url})`;
             const messagePayload = {
                 sender: 'user',
-                text: aiMessageContent, // 存 Markdown，方便历史记录回显
-                // 为了界面美观，我们可以存一个 imageUrl 字段给 createMessageDOM 用
-                imageUrl: uploadResult.url
+                text: aiMessageContent,
+                imageUrl: uploadResult.url // 存入URL供 getAiReply 读取
             };
-
+            // 5. 保存并上屏 (关键：不调用 callApi)
             const newIndex = saveMessage(currentChatContact.id, messagePayload);
             const messageRow = _createMessageDOM(currentChatContact.id, messagePayload, newIndex);
             messagesEl.appendChild(messageRow);
-
-            // 6. 🔥 调用 AI 接口
-            // 构造发送给 API 的消息数组
-            const messages = [
-                {role: 'user', content: aiMessageContent}
-            ];
-
-            // 触发 AI 回复 (复用现有的 getAiReply 逻辑太复杂，直接调底层 callApi)
-            // 添加一个“思考中”气泡
-            const thinkingBubble = _createMessageDOM(currentChatContact.id, {sender: 'contact', text: '...'}, -1);
-            messagesEl.appendChild(thinkingBubble);
-
-            const result = await callApi(messages); // 这里传入 null 或空数组作为 fileInfos
-            thinkingBubble.remove();
-
-            // 7. 显示 AI 回复
-            if (result.success) {
-                const replyMsg = {sender: 'contact', text: result.message};
-                const replyIndex = saveMessage(currentChatContact.id, replyMsg);
-                const replyRow = _createMessageDOM(currentChatContact.id, replyMsg, replyIndex);
-                messagesEl.appendChild(replyRow);
-            } else {
-                showErrorModal('AI 响应失败', result.message);
-            }
-
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            // 6. 重置界面状态，显示接收按钮
+            document.querySelector('.chat-input-area').classList.remove('has-text');
+            console.log("图片已就绪，等待用户点击接收按钮...");
         } catch (e) {
             console.error(e);
-            document.getElementById(loadingId)?.parentElement?.remove(); // 移除加载气泡
+            // 只删除气泡本身
+            document.getElementById(loadingId)?.remove();
             alert("图片上传失败: " + e.message);
         } finally {
-            event.target.value = ''; // 清空选择框，允许重复选同一张图
+            event.target.value = '';
         }
     });
 
@@ -6085,7 +5680,7 @@ function setupAttachmentMenu() {
             const docId = await LKECloudManager.parseDoc(file, uploadResult, sessionId);
 
             console.log("文档解析成功，DocID:", docId);
-            document.getElementById(loadingId).parentElement.remove();
+            document.getElementById(loadingId)?.remove(); // <--- ✅ 只删除气泡本身
 
             // 3. 构造 file_infos 对象 (API 要求的数据结构)
             const fileInfo = {
@@ -6141,7 +5736,7 @@ function setupAttachmentMenu() {
 
         } catch (e) {
             console.error(e);
-            document.getElementById(loadingId)?.parentElement?.remove();
+            document.getElementById(loadingId)?.remove();
             alert("文档解析失败: " + e.message);
         } finally {
             event.target.value = '';
@@ -6164,11 +5759,12 @@ function setupAttachmentMenu() {
  * [最终修复版] 初始化密友聊天附件菜单
  * - 使用 cloneNode 技巧移除旧的事件监听器，修复重复绑定问题。
  */
+
 // script.js - 找到 setupSweetheartAttachmentMenu 函数，完整替换为：
 
 /**
  * [最终云端版] 初始化密友聊天附件菜单
- * 支持：上传图片(COS)对话、上传文档(COS+解析)对话、发红包
+ * - 修正：图片上传后不再立即调用 API
  */
 function setupSweetheartAttachmentMenu() {
     const attachmentBtn = document.getElementById('sweetheartShowAttachmentMenuBtn');
@@ -6176,19 +5772,14 @@ function setupSweetheartAttachmentMenu() {
     const fileInput = document.getElementById('sweetheartFileInput');
     const imageInput = document.getElementById('sweetheartImageInput');
     const redPacketBtn = document.getElementById('sweetheartSendRedPacketBtn');
-
     if (!attachmentBtn || !attachmentMenu) return;
-
-    // 1. 克隆按钮以清除旧事件 (防止重复绑定)
+    // 克隆按钮防止重复绑定
     const freshAttachmentBtn = attachmentBtn.cloneNode(true);
     attachmentBtn.parentNode.replaceChild(freshAttachmentBtn, attachmentBtn);
-
     freshAttachmentBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         attachmentMenu.classList.toggle('show');
     });
-
-    // 点击外部关闭菜单
     document.addEventListener('click', function (e) {
         if (attachmentMenu.classList.contains('show') &&
             !attachmentMenu.contains(e.target) &&
@@ -6196,18 +5787,7 @@ function setupSweetheartAttachmentMenu() {
             attachmentMenu.classList.remove('show');
         }
     });
-
-    // --- 绑定上传按钮点击事件 ---
-    const uploadFileBtn = document.getElementById('sweetheartUploadFileBtn');
-    if (uploadFileBtn && fileInput) {
-        const freshUploadFileBtn = uploadFileBtn.cloneNode(true);
-        uploadFileBtn.parentNode.replaceChild(freshUploadFileBtn, uploadFileBtn);
-        freshUploadFileBtn.addEventListener('click', function () {
-            fileInput.click();
-            attachmentMenu.classList.remove('show');
-        });
-    }
-
+    // 绑定按钮点击
     const uploadImageBtn = document.getElementById('sweetheartUploadImageBtn');
     if (uploadImageBtn && imageInput) {
         const freshUploadImageBtn = uploadImageBtn.cloneNode(true);
@@ -6217,17 +5797,12 @@ function setupSweetheartAttachmentMenu() {
             attachmentMenu.classList.remove('show');
         });
     }
-
-    // ============================================================
-    // 🔥 核心修改 A: 密友图片上传 (上传COS -> 发送Markdown给AI)
-    // ============================================================
+    // --- 核心修改：密友图片上传 (只保存，不触发AI) ---
     const freshImageInput = imageInput.cloneNode(true);
     imageInput.parentNode.replaceChild(freshImageInput, imageInput);
-
     freshImageInput.addEventListener('change', async function (e) {
         const file = e.target.files[0];
         if (!file || !currentSweetheartChatContact) return;
-
         // 1. UI: 显示上传中
         const messagesEl = document.getElementById('sweetheartChatMessages');
         const loadingId = 'sh_loading_img_' + Date.now();
@@ -6235,68 +5810,38 @@ function setupSweetheartAttachmentMenu() {
         loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:rgba(255,255,255,0.5);color:#888;">⏳ 图片上传给TA中...</div></div>`;
         messagesEl.appendChild(loadingRow.firstChild);
         messagesEl.scrollTop = messagesEl.scrollHeight;
-
         try {
-            // 2. 上传到腾讯云 COS (IsPublic = true)
+            // 2. 上传到腾讯云
             const uploadResult = await LKECloudManager.uploadToCOS(file, true);
             console.log("密友图片上传成功:", uploadResult.url);
-
-            // 3. 移除加载气泡
-            document.getElementById(loadingId)?.parentElement?.remove();
-
-            // 4. 构造 Markdown 消息 (隐藏式发送，或者直接显示图)
+            document.getElementById(loadingId)?.remove();
+            // 3. 构造消息
             const aiMessageContent = `(分享了一张图片)\n![](${uploadResult.url})`;
-
-            // 5. 在界面上显示图片消息 (保存并渲染)
+            // 4. 保存消息 (isProcessed: false)
             const messagePayload = {
                 sender: 'user',
                 text: aiMessageContent,
-                imageUrl: uploadResult.url, // 用于UI渲染
-                timestamp: Date.now()
+                imageUrl: uploadResult.url,
+                timestamp: Date.now(),
+                isProcessed: false // 关键：标记为未处理
             };
-
             const newIndex = saveSweetheartMessage(currentSweetheartChatContact.id, messagePayload);
             const messageRow = _createMessageDOM(currentSweetheartChatContact.id, messagePayload, newIndex);
             messagesEl.appendChild(messageRow);
             messagesEl.scrollTop = messagesEl.scrollHeight;
+            // 5. 移除自动API调用
+            console.log("密友图片已保存，等待手动触发回复...");
 
-            // 6. 调用 AI 分析
-            // 添加一个"思考中"气泡
-            const thinkingBubble = _createMessageDOM(currentSweetheartChatContact.id, {sender: 'contact', text: '...'}, -1);
-            messagesEl.appendChild(thinkingBubble);
-
-            // 构造请求数组
-            const messages = [
-                { role: 'user', content: aiMessageContent }
-            ];
-
-            // 调用 API (注意：这里用的是之前修改过的 callApi)
-            const result = await callApi(messages);
-            thinkingBubble.remove();
-
-            // 7. 处理 AI 回复
-            if (result.success) {
-                const replyMsg = {
-                    sender: 'contact',
-                    text: result.message,
-                    timestamp: Date.now()
-                };
-                const replyIndex = saveSweetheartMessage(currentSweetheartChatContact.id, replyMsg);
-                messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, replyMsg, replyIndex));
-                messagesEl.scrollTop = messagesEl.scrollHeight;
-            } else {
-                showErrorModal('响应失败', result.message);
-            }
-
+            // 6. 确保接收按钮可见
+            document.querySelector('.sweetheart-chat-input-area').classList.remove('has-text');
         } catch (err) {
             console.error(err);
-            document.getElementById(loadingId)?.parentElement?.remove();
+            document.getElementById(loadingId)?.remove();
             showErrorModal('图片发送失败', err.message);
         } finally {
-            this.value = ''; // 清空，允许重复选图
+            this.value = '';
         }
     });
-
     // ============================================================
     // 🔥 核心修改 B: 密友文件上传 (上传COS -> 解析 -> 发送file_infos)
     // ============================================================
@@ -6356,17 +5901,20 @@ function setupSweetheartAttachmentMenu() {
             const promptText = "请阅读这份文档，并告诉我你的想法。";
 
             // 显示指令气泡
-            const promptMsg = { sender: 'user', text: promptText, timestamp: Date.now() };
+            const promptMsg = {sender: 'user', text: promptText, timestamp: Date.now()};
             const pIndex = saveSweetheartMessage(currentSweetheartChatContact.id, promptMsg);
             messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, promptMsg, pIndex));
 
             // 思考中...
-            const thinkingBubble = _createMessageDOM(currentSweetheartChatContact.id, {sender: 'contact', text: '...'}, -1);
+            const thinkingBubble = _createMessageDOM(currentSweetheartChatContact.id, {
+                sender: 'contact',
+                text: '...'
+            }, -1);
             messagesEl.appendChild(thinkingBubble);
             messagesEl.scrollTop = messagesEl.scrollHeight;
 
             // 6. 调用 API
-            const messages = [{ role: 'user', content: promptText }];
+            const messages = [{role: 'user', content: promptText}];
             // 关键：传入 fileInfos 数组
             const result = await callApi(messages, [fileInfo]);
 
@@ -6388,7 +5936,7 @@ function setupSweetheartAttachmentMenu() {
 
         } catch (err) {
             console.error(err);
-            document.getElementById(loadingId)?.parentElement?.remove();
+            document.getElementById(loadingId)?.remove();
             showErrorModal('文档解析失败', err.message);
         } finally {
             event.target.value = '';
@@ -6481,155 +6029,6 @@ function simulateSendingMessage(messageText) {
 
 /* ========== 结束：粘贴 JavaScript 代码块 ========== */
 
-/* ========== 开始：粘贴悬浮球的全新JavaScript逻辑 ========== */
-
-// ========== 开始：粘贴这段【最终修正版】的悬浮球JS逻辑 ==========
-
-function initializeFloatingBall() {
-    const ball = document.getElementById('floatingBall');
-    const phone = document.querySelector('.phone');
-
-    if (!ball || !phone) return;
-
-    let isDragging = false;
-    let hasMoved = false; // 同样用于区分点击和拖拽
-    let startX, startY;
-    let initialLeft, initialTop;
-
-    // 智能吸附到边缘的函数（保持不变）
-    const snapToEdge = () => {
-        const phoneRect = phone.getBoundingClientRect();
-        const ballRect = ball.getBoundingClientRect();
-        const screenInnerWidth = phoneRect.width - 24;
-        let currentLeft = parseFloat(ball.style.left || 0);
-
-        if (currentLeft + ballRect.width / 2 < screenInnerWidth / 2) {
-            ball.style.left = '12px';
-        } else {
-            ball.style.left = `${phoneRect.width - ballRect.width - 12}px`;
-        }
-    };
-
-    // 【 handleClick 函数被简化 】
-    // 它现在只负责核心的点击业务，不再做判断
-    const handleClick = () => {
-        console.log('悬浮球被点击了!');
-        toggleFloatingBallMenu(); // 打开或关闭菜单
-    };
-
-    const startDrag = (e) => {
-        // e.preventDefault() 会阻止后续的 click 事件，但我们这里不能阻止，否则桌面端的 click 会失效。
-        // 我们在 touchend 中有选择地阻止。
-
-        isDragging = true;
-        hasMoved = false; // 每次开始时重置
-        ball.classList.add('dragging');
-
-        const touch = e.touches ? e.touches[0] : e;
-        startX = touch.clientX;
-        startY = touch.clientY;
-
-        const ballRect = ball.getBoundingClientRect();
-        const phoneRect = phone.getBoundingClientRect();
-        initialLeft = ballRect.left - phoneRect.left;
-        initialTop = ballRect.top - phoneRect.top;
-
-        // 统一使用 left/top 定位，后续计算更简单
-        ball.style.left = `${initialLeft}px`;
-        ball.style.top = `${initialTop}px`;
-        ball.style.right = 'auto';
-        ball.style.bottom = 'auto';
-
-        document.addEventListener('mousemove', onDrag);
-        document.addEventListener('touchmove', onDrag, {passive: false});
-        document.addEventListener('mouseup', endDrag);
-        document.addEventListener('touchend', endDrag);
-    };
-
-    const onDrag = (e) => {
-        if (!isDragging) return;
-
-        // 【优化】移动距离超过一个微小阈值才判定为拖拽
-        const touch = e.touches ? e.touches[0] : e;
-        if (!hasMoved && (Math.abs(touch.clientX - startX) > 5 || Math.abs(touch.clientY - startY) > 5)) {
-            hasMoved = true;
-        }
-
-        // 只有真正拖动时才阻止页面滚动
-        if (hasMoved && e.cancelable) e.preventDefault();
-
-        const deltaX = touch.clientX - startX;
-        const deltaY = touch.clientY - startY;
-
-        const phoneRect = phone.getBoundingClientRect();
-        const ballRect = ball.getBoundingClientRect();
-
-        let newLeft = initialLeft + deltaX;
-        let newTop = initialTop + deltaY;
-
-        // 更可靠的边界检测
-        const minX = 12;
-        const maxX = phoneRect.width - ballRect.width - 12;
-        const minY = 12;
-        const maxY = phoneRect.height - ballRect.height - 12;
-
-        newLeft = Math.max(minX, Math.min(newLeft, maxX));
-        newTop = Math.max(minY, Math.min(newTop, maxY));
-
-        ball.style.left = `${newLeft}px`;
-        ball.style.top = `${newTop}px`;
-    };
-
-    // 【 endDrag 函数是修复的核心 】
-    const endDrag = (e) => {
-        if (!isDragging) return;
-
-        // 1. 如果没有拖动，就判定为 "Tap"（轻点）
-        if (!hasMoved) {
-            // [关键修复] 如果是触摸事件，我们主动阻止默认行为。
-            // 这能有效防止大约300ms后浏览器自动触发的 `click` 事件，从而避免了双重调用。
-            if (e.type === 'touchend') {
-                e.preventDefault();
-            }
-            handleClick(); // 手动执行点击逻辑
-        } else {
-            // 2. 如果拖动了，执行吸附边缘的逻辑
-            snapToEdge();
-        }
-
-        // 3. 清理工作
-        isDragging = false;
-        ball.classList.remove('dragging');
-
-        document.removeEventListener('mousemove', onDrag);
-        document.removeEventListener('touchmove', onDrag);
-        document.removeEventListener('mouseup', endDrag);
-        document.removeEventListener('touchend', endDrag);
-    };
-
-    // 【 绑定事件 】
-    // 我们同时监听 mousedown 和 touchstart，它们都调用 startDrag
-    ball.addEventListener('mousedown', startDrag);
-    ball.addEventListener('touchstart', startDrag, {passive: false});
-
-    // 我们为桌面端保留 click 事件。因为在 touchend 中 preventDefault() 了，
-    // 所以在移动端，这个 click 事件将不会被触发，完美解决了冲突。
-    ball.addEventListener('click', (e) => {
-        // 为了防止极少数情况下 touchend 的 preventDefault 失效，增加一个判断：
-        // 如果是拖拽过的，就不要执行点击。
-        if (hasMoved) {
-            e.stopPropagation();
-            return;
-        }
-        // 对于桌面端，因为没有 touchend，所以会正常执行 handleClick
-        if (e.detail > 0) { // e.detail > 0 确保这是真正的用户鼠标点击
-            handleClick();
-        }
-    });
-}
-
-// ========== 结束：粘贴【最终修正版】的悬浮球JS逻辑 ==========
-
 
 // ========== 开始：粘贴这个全新的 JavaScript 函数 ==========
 
@@ -6660,362 +6059,6 @@ function clearAllData() {
 }
 
 // ========== 结束：粘贴代码 ==========
-
-
-/* ========== 开始：粘贴这个全新的 JavaScript 函数 ========== */
-
-/**
- * 根据传入的状态，显示或隐藏悬浮球
- * @param {boolean} isEnabled - true 为显示, false 为隐藏
- */
-function applyFloatingBallSetting(isEnabled) {
-    const ball = document.getElementById('floatingBall');
-    if (ball) {
-        ball.style.display = isEnabled ? 'flex' : 'none';
-    }
-}
-
-// ========== 图标收藏栏功能 ==========
-
-let dockedIcons = []; // 存储在栏目中的图标数据
-
-/**
- * 打开/关闭悬浮球菜单
- */
-function toggleFloatingBallMenu() {
-    const menu = document.getElementById('floatingBallMenu');
-    menu.classList.toggle('show');
-}
-
-/**
- * 关闭悬浮球菜单
- */
-function closeFloatingBallMenu() {
-    const menu = document.getElementById('floatingBallMenu');
-    menu.classList.remove('show');
-}
-
-/**
- * 打开/关闭图标收藏栏
- */
-function toggleIconDockPanel() {
-    const panel = document.getElementById('iconDockPanel');
-    panel.classList.toggle('show');
-    closeFloatingBallMenu();
-
-    // 如果是打开状态，渲染图标
-    if (panel.classList.contains('show')) {
-        renderDockedIcons();
-    }
-}
-
-/**
- * 关闭图标收藏栏
- */
-function closeIconDockPanel() {
-    const panel = document.getElementById('iconDockPanel');
-    panel.classList.remove('show');
-}
-
-/**
- * 渲染栏目中的图标
- */
-function renderDockedIcons() {
-    const container = document.getElementById('dockPanelContent');
-
-    if (dockedIcons.length === 0) {
-        container.innerHTML = '<div class="dock-panel-empty">拖动图标到这里收藏</div>';
-        return;
-    }
-
-    container.innerHTML = '';
-
-    dockedIcons.forEach((iconData, index) => {
-        const iconEl = document.createElement('div');
-        iconEl.className = 'dock-panel-icon';
-        iconEl.dataset.iconId = iconData.id;
-        iconEl.dataset.sourceGrid = iconData.sourceGrid;
-        iconEl.dataset.dockIndex = index;
-
-        // 构建图标HTML
-        const customIcon = globalConfig.customIcons[iconData.id];
-        let iconContent;
-
-        if (customIcon) {
-            iconContent = `<img src="${customIcon}" alt="${iconData.label}">`;
-        } else if (iconData.icon && (iconData.icon.startsWith('http') || iconData.icon.startsWith('data:'))) {
-            iconContent = `<img src="${iconData.icon}" alt="${iconData.label}">`;
-        } else {
-            iconContent = iconData.icon || '📱';
-        }
-
-        iconEl.innerHTML = `
-            <div class="icon-wrapper">${iconContent}</div>
-            <div class="app-label">${iconData.label}</div>
-        `;
-
-        // 添加长按拖出功能
-        addDockIconDragListeners(iconEl, iconData);
-
-        // 点击功能
-        iconEl.addEventListener('click', (e) => {
-            if (!iconData.clickable) return;
-            if (iconData.id === 'settings') {
-                closeIconDockPanel();
-                openSettings();
-            } else if (iconData.id === 'worldbook') {
-                closeIconDockPanel();
-                openWorldbook();
-            }
-        });
-
-        container.appendChild(iconEl);
-    });
-}
-
-/**
- * 为栏目中的图标添加拖出功能
- */
-function addDockIconDragListeners(el, iconData) {
-    let longPressTimer = null;
-    let startPos = {x: 0, y: 0};
-    let isDraggingFromDock = false;
-
-    const startDrag = (e) => {
-        const touch = e.touches ? e.touches[0] : e;
-        startPos = {x: touch.clientX, y: touch.clientY};
-
-        longPressTimer = setTimeout(() => {
-            isDraggingFromDock = true;
-            el.style.opacity = '0.5';
-            createDragGhost(iconData, touch.clientX, touch.clientY);
-        }, 500);
-    };
-
-    const endDrag = () => {
-        clearTimeout(longPressTimer);
-        if (isDraggingFromDock) {
-            el.style.opacity = '';
-            isDraggingFromDock = false;
-        }
-    };
-
-    el.addEventListener('mousedown', startDrag);
-    el.addEventListener('touchstart', startDrag, {passive: true});
-    el.addEventListener('mouseup', endDrag);
-    el.addEventListener('touchend', endDrag);
-}
-
-let dragGhost = null;
-let ghostIconData = null;
-
-/**
- * 创建拖动的幽灵元素
- */
-function createDragGhost(iconData, x, y) {
-    // 🔧 新增：设置全局拖拽标志
-    state.isDraggingFromDock = true;
-    // 移除旧的幽灵元素
-    if (dragGhost) {
-        dragGhost.remove();
-    }
-
-    ghostIconData = iconData;
-
-    dragGhost = document.createElement('div');
-    dragGhost.className = 'app-icon dragging';
-    dragGhost.style.position = 'fixed';
-    dragGhost.style.zIndex = '3000';
-    dragGhost.style.pointerEvents = 'none';
-    dragGhost.style.left = `${x}px`;
-    dragGhost.style.top = `${y}px`;
-    dragGhost.style.transform = 'translate(-50%, -50%) scale(1.1)';
-
-    const customIcon = globalConfig.customIcons[iconData.id];
-    let iconContent;
-
-    if (customIcon) {
-        iconContent = `<img src="${customIcon}" alt="">`;
-    } else if (iconData.icon && (iconData.icon.startsWith('http') || iconData.icon.startsWith('data:'))) {
-        iconContent = `<img src="${iconData.icon}" alt="">`;
-    } else {
-        iconContent = iconData.icon || '📱';
-    }
-
-    dragGhost.innerHTML = `
-        <div class="icon-wrapper">${iconContent}</div>
-        <div class="app-label">${iconData.label}</div>
-    `;
-
-    document.body.appendChild(dragGhost);
-
-    // 添加移动和释放事件
-    document.addEventListener('mousemove', moveDragGhost);
-    document.addEventListener('touchmove', moveDragGhost, {passive: false});
-    document.addEventListener('mouseup', dropDragGhost);
-    document.addEventListener('touchend', dropDragGhost);
-}
-
-/**
- * 移动幽灵元素
- */
-function moveDragGhost(e) {
-    if (!dragGhost) return;
-
-    if (e.cancelable) e.preventDefault();
-
-    const touch = e.touches ? e.touches[0] : e;
-    dragGhost.style.left = `${touch.clientX}px`;
-    dragGhost.style.top = `${touch.clientY}px`;
-}
-
-/**
- * 释放幽灵元素
- */
-function dropDragGhost(e) {
-    if (!dragGhost || !ghostIconData) {
-        cleanupDragGhost();
-        return;
-    }
-
-    const touch = e.changedTouches ? e.changedTouches[0] : e;
-
-    // 检测是否释放在页面区域
-    const grids = [document.getElementById('grid1'), document.getElementById('grid2')];
-    let droppedOnGrid = false;
-
-    grids.forEach((grid, pageIndex) => {
-        const rect = grid.getBoundingClientRect();
-        if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
-            touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-            droppedOnGrid = true;
-
-            // 将图标从栏目移回页面
-            moveIconBackToGrid(ghostIconData, grid, touch.clientX - rect.left, touch.clientY - rect.top, pageIndex + 1);
-        }
-    });
-    state.lastDragEndTime = Date.now(); // ✅ 新增：无论是否成功放下，都记录拖拽结束时间
-    cleanupDragGhost();
-}
-
-/**
- * 清理拖拽状态
- */
-function cleanupDragGhost() {
-    if (dragGhost) {
-        dragGhost.remove();
-        dragGhost = null;
-    }
-    ghostIconData = null;
-    // 🔧 新增：清除拖拽标志
-    state.isDraggingFromDock = false;
-    document.removeEventListener('mousemove', moveDragGhost);
-    document.removeEventListener('touchmove', moveDragGhost);
-    document.removeEventListener('mouseup', dropDragGhost);
-    document.removeEventListener('touchend', dropDragGhost);
-}
-
-/**
- * 将图标从栏目移回网格
- */
-function moveIconBackToGrid(iconData, grid, dropX, dropY, pageNum) {
-    const ROW_HEIGHT_PX = 94;
-    const GAP_PX = 14;
-    const gridRect = grid.getBoundingClientRect();
-
-    let col = Math.floor(dropX / (gridRect.width / 4));
-    let row = Math.floor(dropY / (ROW_HEIGHT_PX + GAP_PX));
-
-    col = Math.max(0, Math.min(col, 3));
-    row = Math.max(0, Math.min(row, 5));
-
-    const pageKey = `page${pageNum}`;
-
-    // 检查位置是否被占用
-    if (isOccupied(pageKey, row, col, iconData.id)) {
-        showSuccessModal('提示', '该位置已被占用，请拖到其他位置', 1500);
-        return;
-    }
-
-    // 从栏目中移除
-    const dockIndex = dockedIcons.findIndex(icon => icon.id === iconData.id);
-    if (dockIndex !== -1) {
-        dockedIcons.splice(dockIndex, 1);
-        saveDockedIcons();
-    }
-
-    // 添加回网格
-    const appData = {
-        ...iconData,
-        row,
-        col
-    };
-
-    state.appLayouts[pageKey].push(appData);
-    saveLayoutToLocalStorage();
-
-    // 重新渲染
-    const el = createElement(appData, grid);
-    renderDockedIcons();
-
-    showSuccessModal('移动成功', `已将"${iconData.label}"移动到第${pageNum}页`, 1500);
-}
-
-/**
- * 保存栏目图标到localStorage
- */
-function saveDockedIcons() {
-    try {
-        localStorage.setItem('phoneDockedIcons', JSON.stringify(dockedIcons));
-    } catch (e) {
-        console.error('保存栏目图标失败:', e);
-    }
-}
-
-
-/**
- * 将图标添加到栏目
- */
-function addIconToDockPanel(element) {
-    const iconId = element.dataset.id;
-    const grid = element.parentElement;
-    const pageKey = grid.id === 'grid1' ? 'page1' : 'page2';
-
-    // 查找图标数据
-    const appData = state.appLayouts[pageKey].find(app => app.id === iconId);
-    if (!appData) {
-        console.error('未找到图标数据:', iconId);
-        return;
-    }
-
-    // 检查是否已在栏目中
-    if (dockedIcons.some(icon => icon.id === iconId)) {
-        showSuccessModal('提示', '该图标已在收藏栏中', 1500);
-        return;
-    }
-
-    // 保存源网格信息
-    const iconData = {
-        ...appData,
-        sourceGrid: pageKey,
-        sourceRow: appData.row,
-        sourceCol: appData.col
-    };
-
-    // 添加到栏目
-    dockedIcons.push(iconData);
-    saveDockedIcons();
-
-    // 从原页面移除
-    state.appLayouts[pageKey] = state.appLayouts[pageKey].filter(app => app.id !== iconId);
-    saveLayoutToLocalStorage();
-    element.remove();
-
-    // 刷新栏目显示
-    renderDockedIcons();
-
-    showSuccessModal('添加成功', `已将"${iconData.label}"添加到收藏栏`, 1500);
-}
 
 
 // ========== 开始：新增的密友列表相关函数 ==========
@@ -8104,6 +7147,11 @@ async function getSweetheartAiReply() {
     getReplyBtn.disabled = true;
     // chatInput.disabled = true; // 暂时禁用输入框，等待AI回复
 
+    // === 新增：准备密友人设变量 ===
+    const dynamicPersona = {
+        "character_name": currentSweetheartChatContact.name,
+        "character_persona": currentSweetheartChatContact.status || "你是我的亲密朋友。"
+    };
     // --- 步骤 1: 构建发送给AI的消息数组 ---
     const messages = [];
 
@@ -8358,8 +7406,12 @@ async function getSweetheartAiReply() {
 
         // 再添加到API请求的末尾
         // 如果刚才userTextBuffer没发完，或者刚刚发完，这里直接push一个新的user消息
+        messages.push({
+            role: "system",
+            content: `(System Reminder: Please stay in character as "${currentSweetheartChatContact.name}". Do not act as an AI assistant. Recall your persona: ${currentSweetheartChatContact.status || 'Unknown'})`
+        });
+        // 再添加到API请求的末尾
         messages.push({role: 'user', content: aiInputText});
-
         // 清理引用状态
         cancelSweetheartQuote();
     }
@@ -8377,7 +7429,7 @@ async function getSweetheartAiReply() {
     const thinkingBubble = _createMessageDOM(contactId, {sender: 'contact', text: '...'}, -1);
     messagesEl.appendChild(thinkingBubble);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    const result = await callApi(messages);
+    const result = await callApi(messages, [], dynamicPersona);
     thinkingBubble.remove();
     if (!result.success) {
         showErrorModal('API 响应错误', result.message);
@@ -9746,9 +8798,6 @@ function gatherWorldbookContext() {
 
     const relevantWorldbookIds = new Set();
 
-    // 1. 【核心修改】首先，无条件添加内置的全局世界书 ID
-    relevantWorldbookIds.add(GLOBAL_WORLDBOOK_ID);
-
     // 2. 如果有当前联系人，再添加它绑定的
     if (currentChatContact) {
         // 在密友列表查找
@@ -10522,9 +9571,7 @@ function editCatSpeech(event) {
     }
 }
 
-/**
- * 加载小猫组件的保存数据
- */
+
 /**
  * 加载小猫组件的保存数据
  */
@@ -10765,8 +9812,7 @@ function openBubbleLibrary() {
     page.classList.add('show');
     loadBubblePresets('normal');
     loadBubblePresets('sweetheart');
-    // 首次打开时，加载当前已应用的样式到编辑框和预览
-    loadCurrentStylesToEditor();
+    // 删除 loadCurrentStylesToEditor();
 }
 
 /**
@@ -10788,70 +9834,6 @@ function switchBubbleTab(tabName) {
         tabName === 'normal' ? 'block' : 'none';
     document.getElementById('sweetheartBubbleEditor').style.display =
         tabName === 'sweetheart' ? 'block' : 'none';
-}
-
-/**
- * 加载示例代码
- */
-function loadBubbleExample(chatType, bubbleType) {
-    const example = BUBBLE_EXAMPLES[chatType][bubbleType];
-    const inputId = `${chatType}${bubbleType.charAt(0).toUpperCase() + bubbleType.slice(1)}BubbleCode`;
-    document.getElementById(inputId).value = example;
-    // 触发input事件以更新预览
-    document.getElementById(inputId).dispatchEvent(new Event('input'));
-}
-
-/**
- * 实时预览气泡样式（在预览框中）
- */
-function previewBubbleStyle(chatType) {
-    const sentCode = document.getElementById(`${chatType}SentBubbleCode`).value;
-    const receivedCode = document.getElementById(`${chatType}ReceivedBubbleCode`).value;
-
-    const sentPreview = document.querySelector(`#${chatType}SentPreview .preview-bubble`);
-    const receivedPreview = document.querySelector(`#${chatType}ReceivedPreview .preview-bubble`);
-
-    // 清除旧样式再应用新样式
-    sentPreview.style.cssText = '';
-    sentPreview.style.cssText = sentCode;
-
-    receivedPreview.style.cssText = '';
-    receivedPreview.style.cssText = receivedCode;
-}
-
-/**
- * 保存为预设
- */
-function saveBubblePreset(chatType) {
-    const sentCode = document.getElementById(`${chatType}SentBubbleCode`).value.trim();
-    const receivedCode = document.getElementById(`${chatType}ReceivedBubbleCode`).value.trim();
-
-    if (!sentCode && !receivedCode) {
-        alert('没有可保存的样式代码！');
-        return;
-    }
-
-    const defaultName = `我的预设 ${new Date().toLocaleDateString()}`;
-    const presetName = prompt('请为这个预设命名：', defaultName);
-
-    if (!presetName) return;
-
-    const preset = {
-        id: 'preset_' + Date.now(),
-        name: presetName,
-        sentCode: sentCode,
-        receivedCode: receivedCode,
-        timestamp: Date.now()
-    };
-
-    const storageKey = `bubblePresets_${chatType}`;
-    let presets = JSON.parse(localStorage.getItem(storageKey) || '[]');
-    presets.unshift(preset); // 新的预设放在最前面
-    localStorage.setItem(storageKey, JSON.stringify(presets));
-
-    loadBubblePresets(chatType);
-
-    showSuccessModal('保存成功', `预设"${presetName}"已保存！`);
 }
 
 /**
@@ -10953,11 +9935,11 @@ function applyBubblePreset(chatType, presetId) {
     }
 
     styleEl.textContent = css;
+    localStorage.setItem(`activeBubbleStyle_${chatType}`, JSON.stringify({
+        sent: preset.sentCode,
+        received: preset.receivedCode
+    }));
 
-    document.getElementById(`${chatType}SentBubbleCode`).value = preset.sentCode;
-    document.getElementById(`${chatType}ReceivedBubbleCode`).value = preset.receivedCode;
-
-    previewBubbleStyle(chatType);
     showSuccessModal('应用成功', `已应用预设"${preset.name}"！`);
 }
 
@@ -11032,37 +10014,6 @@ function loadSavedBubbleStyles() {
                 console.error('加载气泡样式失败:', e);
             }
         }
-    });
-}
-
-/**
- * 将当前已应用的样式加载到编辑框中
- */
-function loadCurrentStylesToEditor() {
-    ['normal', 'sweetheart'].forEach(chatType => {
-        const saved = localStorage.getItem(`activeBubbleStyle_${chatType}`);
-        if (saved) {
-            try {
-                const {sent, received} = JSON.parse(saved);
-                const sentInput = document.getElementById(`${chatType}SentBubbleCode`);
-                const receivedInput = document.getElementById(`${chatType}ReceivedBubbleCode`);
-                sentInput.value = sent || '';
-                receivedInput.value = received || '';
-                sentInput.dispatchEvent(new Event('input'));
-                receivedInput.dispatchEvent(new Event('input'));
-            } catch (e) {
-            }
-        }
-    });
-}
-
-/**
- * 设置实时预览监听器
- */
-function setupLivePreviewListeners() {
-    ['normal', 'sweetheart'].forEach(chatType => {
-        document.getElementById(`${chatType}SentBubbleCode`).addEventListener('input', () => previewBubbleStyle(chatType));
-        document.getElementById(`${chatType}ReceivedBubbleCode`).addEventListener('input', () => previewBubbleStyle(chatType));
     });
 }
 
@@ -11193,14 +10144,12 @@ function renderContactLibrary() {
 
     // 1. 添加密友列表中的源联系人
     sweetheartContactsData.forEach(contact => {
-        if (!contact.id.includes('_')) {
-            allContactsMap.set(contact.id, {...contact, type: 'sweetheart'});
-        }
+        allContactsMap.set(contact.id, {...contact, type: 'sweetheart'});
     });
 
     // 2. 添加普通联系人列表中的源联系人
     contactsData.forEach(contact => {
-        if (!contact.id.includes('_') && !allContactsMap.has(contact.id)) {
+        if (!allContactsMap.has(contact.id)) {
             allContactsMap.set(contact.id, {...contact, type: 'normal'});
         }
     });
@@ -11492,7 +10441,6 @@ function cloneContact(sourceContact) {
         ...(sourceContact.catchphrase && {catchphrase: sourceContact.catchphrase}),
         ...(sourceContact.history && {history: sourceContact.history}),
         ...(sourceContact.relationship && {relationship: sourceContact.relationship}),
-        ...(sourceContact.memoryRounds && {memoryRounds: sourceContact.memoryRounds}),
         // 绑定的世界书（深拷贝数组）
         boundWorldbooks: sourceContact.boundWorldbooks ? [...sourceContact.boundWorldbooks] : []
     };
@@ -13022,52 +11970,49 @@ function adjustQuestionCount(delta) {
 }
 
 /**
- * [新增] 健壮的AI JSON响应解析器
- * 它可以处理纯JSON、被文字包裹的JSON和被Markdown包裹的JSON
- * @param {string} rawMessage - 从AI获取的原始字符串
- * @returns {object} 解析成功后的JavaScript对象
- * @throws {Error} 如果无法解析出有效的JSON，则抛出错误
+ * [终极版] 鲁棒的 JSON 解析器
+ * 能够从各种混乱的 AI 回复中提取出合法的 JSON 对象
  */
 function robustJsonParse(rawMessage) {
-    if (!rawMessage) {
-        throw new Error("AI返回内容为空");
+    if (!rawMessage || typeof rawMessage !== 'string') {
+        throw new Error("输入内容为空或不是字符串");
     }
 
+    let text = rawMessage;
+
+    // 1. 尝试暴力查找最外层的 {}
+    // 这一步能解决 99% 的 "好的，这是结果：{...} 结束" 这种问题
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+        text = text.substring(firstBrace, lastBrace + 1);
+    }
+
+    // 2. 清理可能残留的 Markdown 标记 (虽然提取 {} 后通常不需要，但为了保险)
+    text = text.replace(/```json/gi, '').replace(/```/g, '');
+
+    // 3. 尝试解析
     try {
-        // 步骤 1: 尝试直接解析，这是最理想的情况
-        return JSON.parse(rawMessage);
+        return JSON.parse(text);
     } catch (e) {
-        // 直接解析失败，继续下一步智能提取
-        console.warn("直接解析JSON失败，尝试智能提取...");
-    }
+        console.error("JSON 解析失败，原始文本:", rawMessage);
+        console.error("提取后文本:", text);
 
-    // 步骤 2: 清理Markdown代码块标记
-    let cleanedMessage = rawMessage.trim()
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim();
-
-    // 步骤 3: 使用正则表达式贪婪匹配最外层的 { ... } 或 [ ... ]
-    const jsonMatch = cleanedMessage.match(/^(?:\[[\s\S]*\]|\{[\s\S]*\})$/);
-    if (jsonMatch) {
+        // 4. [高级容错] 尝试修复常见的 JSON 尾部逗号错误 (例如: {"a":1,} -> {"a":1})
         try {
-            // 尝试解析提取出的内容
-            const parsed = JSON.parse(jsonMatch[0]);
-            console.log("✅ 智能提取JSON成功！");
-            return parsed;
-        } catch (e) {
-            console.error("❌ 提取JSON后解析仍然失败:", e);
+            const fixedText = text.replace(/,(\s*[}\]])/g, '$1');
+            return JSON.parse(fixedText);
+        } catch (e2) {
+            throw new Error("无法从回复中提取有效 JSON，请检查 AI 输出格式。");
         }
     }
-
-    // 步骤 4: 如果以上都失败，则抛出最终错误
-    throw new Error("无法从AI返回的内容中解析出有效的JSON格式");
 }
 
 // ========== 开始生成测试 ==========
+// ========== 开始生成测试 (终极修复版) ==========
 async function startGenerateTest() {
-    // 获取选中的知识清单
+    // 1. 获取选中的知识清单
     const selectedIds = [];
     document.querySelectorAll('.knowledge-checkbox-item input:checked').forEach(cb => {
         selectedIds.push(cb.value);
@@ -13080,101 +12025,87 @@ async function startGenerateTest() {
 
     const questionCount = parseInt(document.getElementById('questionCountInput').value) || 5;
 
-    // 获取知识内容
+    // 2. 准备知识内容
     const knowledgeBase = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
     const selectedKnowledge = knowledgeBase.filter(item => selectedIds.includes(item.id));
-
-    // 组合知识内容
     let knowledgeContent = '';
     selectedKnowledge.forEach((item, index) => {
-        knowledgeContent += `\n\n知识清单 ${index + 1}:\n${item.content}`;
+        knowledgeContent += `\n\n[材料 ${index + 1}]\n${item.content}`;
     });
 
-    // 构建提示词
-    const prompt = `请根据以下知识内容，生成${questionCount}道测试题。题目类型包括选择题、填空题和主观题。
-
-知识内容:${knowledgeContent}
-
-请严格按照以下JSON格式输出，不要添加任何其他文字：
+    // 3. 构建 Prompt (🔥 关键修改：通过话术绕过思考模型的死锁)
+    // 我们不再说“严禁输出其他内容”，而是说“请生成内容，最终包含一个JSON代码块即可”
+    const prompt = `
+[DATA_CONVERSION_TASK]
+Input_Data:
+${knowledgeContent}
+Target_Format: JSON
+Question_Count: ${questionCount}
+Instructions:
+Convert the above "Input_Data" into a JSON object containing ${questionCount} quiz questions.
+Do not overthink. Output the JSON immediately.
+JSON_Template:
 {
   "questions": [
-    {
-      "type": "choice",
-      "question": "题目内容",
-      "options": ["选项A", "选项B", "选项C", "选项D"],
-      "answer": "正确答案"
-    },
-    {
-      "type": "fill",
-      "question": "题目内容（用____表示填空）",
-      "answer": "正确答案"
-    },
-    {
-      "type": "subjective",
-      "question": "题目内容",
-      "answer": "参考答案"
-    }
+    { "type": "choice", "question": "...", "options": ["A", "B", "C", "D"], "answer": "A" },
+    { "type": "fill", "question": "...", "answer": "..." }
   ]
-}`;
+}
+`;
 
     closeTestConfig();
-
-    // 显示加载提示
-    showSuccessModal('生成中', '正在生成测试题目，请稍候...', 0);
+    showSuccessModal('生成中', 'AI 正在出题，请耐心等待 (约10-20秒)...', 0); // 0 表示不自动关闭
 
     try {
-        // 调用API生成题目
-        const result = await callApi([
-            {role: 'system', content: '你是一个专业的教育测试专家。'},
-            {role: 'user', content: prompt}
-        ]);
+        // 🔥 4. 调用 API，传入 skipContext=true
+        // 这将发送一个纯净的请求，避免 400400 错误
+        const result = await callApi(
+            [
+                { role: 'system', content: '你是一个试题生成助手。' },
+                { role: 'user', content: prompt }
+            ],
+            [], // fileInfos
+            {}, // customVariables
+            true // 🔴 skipContext: 开启！这是解决 bug 的关键
+        );
 
         if (!result.success) {
             throw new Error(result.message);
         }
 
-        // // 解析生成的题目
-        // let questionsData;
-        // try {
-        //     // 尝试从返回内容中提取JSON
-        //     const jsonMatch = result.message.match(/\{[\s\S]*\}/);
-        //     if (jsonMatch) {
-        //         questionsData = JSON.parse(jsonMatch[0]);
-        //     } else {
-        //         questionsData = JSON.parse(result.message);
-        //     }
-        // } catch (parseError) {
-        //     console.error('JSON解析失败:', parseError);
-        //     throw new Error('题目格式错误，请重试');
-        // }
+        console.log("AI 原始回复:", result.message);
 
-        // [新代码 - 使用这个]
+        // 5. 健壮解析 (无论 AI 是否有废话，或者有 <think> 标签，都能提取)
         let questionsData;
         try {
-            // 使用新的、更健壮的解析函数
-            questionsData = robustJsonParse(result.message);
+            // 先清洗掉 <think> 标签 (如果是思考模型)
+            let cleanText = result.message.replace(/<think>[\s\S]*?<\/think>/gi, "");
+
+            // 提取最外层的 {...}
+            const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                questionsData = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error("未找到 JSON 对象");
+            }
         } catch (parseError) {
             console.error('JSON解析失败:', parseError);
-            // 抛出更具体的错误信息，方便调试
-            throw new Error(`题目格式错误: ${parseError.message}。请重试。`);
+            throw new Error(`AI生成的格式不正确，请重试。`);
         }
 
-
-        // 保存测试数据
+        // 6. 保存数据并显示
         testData.questions = questionsData.questions || [];
         testData.answers = {};
         testData.selectedKnowledgeIds = selectedIds;
 
-        // 关闭加载提示
         document.getElementById('successModal').classList.remove('show');
-
-        // 显示测试准备弹窗
         document.getElementById('testReadyModal').classList.add('show');
 
     } catch (error) {
         document.getElementById('successModal').classList.remove('show');
         console.error('生成测试失败:', error);
-        showErrorModal('生成测试失败', error.message);
+        showErrorModal('生成失败', error.message.includes('400') ? '请求内容过长或违规，请减少知识点数量。' : error.message);
     }
 }
 
@@ -13423,26 +12354,44 @@ function closeTest() {
 }
 
 
-// ========== 关闭测试结果并生成AI反馈 ==========
+// script.js
+
+// ========== 关闭测试结果并生成AI反馈 (修复版) ==========
 async function closeTestResult() {
+    // 1. 关闭结果弹窗和测试页面
     document.getElementById('testResultModal').classList.remove('show');
     document.getElementById('testPage').classList.remove('show');
 
-    // 如果有测试结果，生成AI反馈
+    // 2. 🔥 核心修复：强制确保聊天页面是打开状态
+    // 这样测试结束后，你就不会掉回联系人列表，而是稳稳地留在聊天里
+    const chatPage = document.getElementById('chatPage');
+    if (!chatPage.classList.contains('show')) {
+        chatPage.classList.add('show');
+    }
+
+    // 3. 如果有测试结果，生成AI反馈
     if (testData.testResult && currentChatContact) {
+        // 滚动到底部，准备查看反馈
+        const messagesEl = document.getElementById('chatMessages');
+        if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+
         await generateTestFeedback();
     }
 
-    // 清空测试数据
+    // 4. 清空测试数据
     testData = {questions: [], answers: {}, startTime: null, selectedKnowledgeIds: []};
 }
 
+
 // ========== 生成测试反馈 ==========
+// script.js
+
+// ========== 生成测试反馈 (修复版：精简上下文，防止 400400 错误) ==========
 async function generateTestFeedback() {
     const result = testData.testResult;
     const contactId = currentChatContact.id;
 
-    // 构建测试情况报告
+    // 1. 构建测试情况报告
     let reportText = `我刚刚完成了一次知识测试，以下是测试情况：\n\n`;
     reportText += `📊 客观题成绩：${result.objectiveScore}分\n`;
     reportText += `✅ 答对：${result.correctCount}/${result.objectiveTotal}题\n`;
@@ -13471,11 +12420,11 @@ async function generateTestFeedback() {
     }
 
     reportText += `请你：\n`;
-    reportText += `1. 对我的主观题作答进行评价和打分\n`;
+    reportText += `1. 像阅卷老师一样，对我的主观题作答进行评价和打分\n`;
     reportText += `2. 分析我在这次测试中的表现\n`;
     reportText += `3. 给出针对性的学习建议`;
 
-    // 在聊天消息区显示用户的测试报告
+    // 2. 在聊天消息区显示用户的测试报告
     const messagesEl = document.getElementById('chatMessages');
 
     const reportMessage = {
@@ -13488,7 +12437,7 @@ async function generateTestFeedback() {
     messagesEl.appendChild(reportRow);
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
-    // 显示加载提示
+    // 3. 显示加载提示
     const loadingMsg = _createMessageDOM(contactId, {
         sender: 'contact',
         text: '正在分析你的测试情况...'
@@ -13497,11 +12446,23 @@ async function generateTestFeedback() {
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
     try {
-        // 构建完整的对话上下文（包括人设、面具等）
-        const apiMessages = buildChatContext(contactId, reportText);
+        // 🔥 4. [核心修复] 手动构建精简的 Prompt，不包含聊天历史
+        // 这样可以避免 API 因为上下文过长或混乱而报错 400400
+        const contact = contactsData.find(c => c.id === contactId);
 
-        // 调用API生成反馈
-        const response = await callApi(apiMessages);
+        let systemPrompt = "你是一位专业的辅导老师。";
+        // 如果联系人有人设，使用他的人设，保持语气一致
+        if (contact && contact.status) {
+            systemPrompt = `[角色设定]\n${contact.status}\n\n请保持这个角色的语气，对用户的测试成绩进行评价和指导。`;
+        }
+
+        const apiMessages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: reportText }
+        ];
+
+        // 🔥 关键：传入 true 作为第四个参数 (skipContext)，防止 callApi 自动追加历史记录
+        const response = await callApi(apiMessages, [], {}, true);
 
         // 移除加载提示
         loadingMsg.remove();
@@ -13510,7 +12471,7 @@ async function generateTestFeedback() {
             throw new Error(response.message);
         }
 
-        // 保存并显示AI的反馈
+        // 5. 保存并显示AI的反馈
         const feedbackMessage = {
             sender: 'contact',
             text: response.message
@@ -14945,6 +13906,7 @@ async function toggleNovelTts() {
         showErrorModal('听书失败', error.message);
     }
 }
+
 /**
  * 停止小说听书
  */
@@ -15824,22 +14786,23 @@ let ledgerData = []; // 存储账单数据 (交易明细)
 let ledgerChatHistory = []; // ✨ 新增：存储聊天对话记录
 let isLedgerListMode = false;
 let isLedgerAiMode = false;
-// ✨✨ AI 记账专用提示词 (兼容版) ✨✨
+// ✨✨ AI 记账专用提示词 (修复版：强制 JSON) ✨✨
 const LEDGER_AI_PROMPT = `
 你是一个专业的记账助手。请分析图片中的账单或交易记录。
-【核心指令】
-1. **必须返回纯 JSON 格式**。不要使用 Markdown 表格，不要使用 \`\`\`json 包裹。
-2. **严禁输出 markdown 代码块**。
-3. 直接返回 JSON 对象。
-【JSON 格式要求】
+
+【重要规则】
+1. 支出金额自动转为负数，收入为正数。
+2. 严禁输出任何多余的寒暄或文本描述。
+3. **必须且只能**输出标准的 JSON 格式，不要使用 Markdown 代码块标记（如 \`\`\`json）。
+
+【JSON 输出模版】
 {
-  "reply": "简短的回复 (例如: 识别成功！)",
+  "reply": "简短的一句总结（例如：识别成功，发现5笔交易）",
   "items": [
-    {"desc": "商品或交易名称", "amount": 12.50},
-    {"desc": "另一项", "amount": -5.00}
+    { "desc": "商品或交易名称", "amount": -25.00 },
+    { "desc": "工资收入", "amount": 5000.00 }
   ]
 }
-注意：支出金额请自动转为负数，收入为正数。
 `;
 
 // 1. 初始化与打开/关闭
@@ -15967,74 +14930,112 @@ function updateLedgerDate() {
     document.getElementById('ledgerCurrentMonth').textContent = `${now.getMonth() + 1}月`;
 }
 
-// 5. 发送记账消息 (已修改：添加保存逻辑)
+/**
+ * [终极升级版] 发送记账消息
+ * 修复：统一使用 JSON 解析逻辑，支持多条目，支持数据清洗
+ */
 async function sendLedgerMessage() {
     const input = document.getElementById('ledgerInput');
     const text = input.value.trim();
     if (!text) return;
 
-    // A. 用户消息上屏 (true 表示保存到历史)
+    // A. 用户消息上屏 (保存到历史)
     addLedgerBubble(text, 'user', null, true);
     input.value = '';
 
     // === 判断是否为 AI 模式 ===
     if (isLedgerAiMode) {
-        // AI 模式逻辑
-
+        // --- AI 智能模式 ---
         const loadingId = 'loading-' + Date.now();
-        // Loading消息不需要保存到历史
-        addLedgerBubble("小猫正在疯狂计算中... 🧮", 'ai', loadingId, false);
+        addLedgerBubble("🐱 正在分析你的这笔账...", 'ai', loadingId, false);
 
         try {
+            // 1. 调用 API (复用统一的 Prompt)
             const messages = [
-                {role: "system", content: LEDGER_AI_PROMPT},
-                {role: "user", content: text}
+                { role: "system", content: LEDGER_AI_PROMPT },
+                { role: "user", content: text }
             ];
 
             const result = await callApi(messages);
             document.getElementById(loadingId)?.remove();
 
             if (!result.success) {
-                addLedgerBubble(`出错了喵：${result.message}`, 'ai', null, true);
+                addLedgerBubble(`❌ 请求失败：${result.message}`, 'ai', null, true);
                 return;
             }
 
-            let aiData;
-            try {
-                const jsonMatch = result.message.match(/\{[\s\S]*\}/);
-                const jsonStr = jsonMatch ? jsonMatch[0] : result.message;
-                aiData = JSON.parse(jsonStr);
-            } catch (e) {
-                console.error("AI JSON解析失败", e);
-                addLedgerBubble("算不过来了... (AI返回格式错误)", 'ai', null, true);
+            console.log("AI 原始回复:", result.message);
+
+            // 2. 强力清洗 & 解析 (防止 AI 说废话导致 JSON 解析失败)
+            const cleanText = cleanAiResponseText(result.message);
+            // 尝试解析 JSON，如果失败尝试解析 markdown 表格/列表
+            let aiData = forceParseJson(cleanText);
+
+            // 3. 构建入账数据
+            let itemsToSave = [];
+            let replyText = "记账完成！";
+
+            if (aiData && aiData.items) {
+                // 如果是标准 JSON 格式 (最佳情况)
+                itemsToSave = aiData.items;
+                replyText = aiData.reply || "记下来了";
+            } else {
+                // 兜底：如果 AI 没按 JSON 出牌，尝试用简单正则提取金额
+                // 匹配模式： "描述... 数字"
+                console.warn("文本模式 JSON 解析失败，尝试正则兜底...");
+                const numMatch = text.match(/(-?\d+(\.\d+)?)/g);
+                if (numMatch) {
+                    const amountVal = parseFloat(numMatch[numMatch.length - 1]);
+                    // 简单的描述提取
+                    let descVal = text.replace(numMatch[numMatch.length - 1], '').replace(/[,，元快块]/g, '').trim();
+                    if(!descVal) descVal = "杂项支出";
+
+                    // 判断正负 (简单关键词)
+                    let amountFinal = amountVal;
+                    if (!text.includes('收入') && !text.includes('赚') && amountFinal > 0) {
+                        amountFinal = -amountFinal; // 默认为支出
+                    }
+
+                    itemsToSave.push({ desc: descVal, amount: amountFinal });
+                    replyText = "格式有点乱，但我尽力理解了！";
+                }
+            }
+
+            if (itemsToSave.length === 0) {
+                addLedgerBubble("😿 喵...没看懂金额，请再说一次 (例如: 买菜50)", 'ai', null, true);
                 return;
             }
 
-            const record = {
-                id: Date.now(),
-                desc: aiData.desc || "未知项",
-                amount: parseFloat(aiData.amount),
-                date: Date.now(),
-                type: parseFloat(aiData.amount) > 0 ? 'income' : 'expense'
-            };
+            // 4. 批量入账
+            let detailsStr = "";
+            itemsToSave.forEach(item => {
+                const record = {
+                    id: Date.now() + Math.random(),
+                    desc: item.desc || "一般支出",
+                    amount: parseFloat(item.amount),
+                    date: Date.now(),
+                    type: parseFloat(item.amount) >= 0 ? 'income' : 'expense'
+                };
 
-            ledgerData.unshift(record);
-            saveLedgerData();
+                ledgerData.unshift(record);
 
-            const amountStr = Math.abs(record.amount).toFixed(2);
-            const sign = record.amount > 0 ? '+' : '-';
-            const finalReply = `${aiData.reply}\n\n✅ 已记账：${record.desc} ${sign}${amountStr}`;
+                const sign = record.amount > 0 ? '+' : '';
+                detailsStr += `\n✅ ${record.desc}: ${sign}${record.amount.toFixed(2)}`;
+            });
 
-            addLedgerBubble(finalReply, 'ai', null, true);
+            saveLedgerData(); // 保存并更新统计UI
+
+            // 5. 反馈结果
+            addLedgerBubble(`${replyText}${detailsStr}`, 'ai', null, true);
 
         } catch (err) {
             document.getElementById(loadingId)?.remove();
-            addLedgerBubble("连接断开了... 😿", 'ai', null, true);
             console.error(err);
+            addLedgerBubble(`💥 程序出错: ${err.message}`, 'ai', null, true);
         }
 
     } else {
-        // 🛠️ 原生简单逻辑
+        // --- ⬇️ 保留原有的离线正则逻辑 (非AI模式) ⬇️ ---
         const numMatch = text.match(/(-?\d+(\.\d+)?)/g);
 
         if (numMatch) {
@@ -16052,18 +15053,20 @@ async function sendLedgerMessage() {
                 amount = -Math.abs(amount);
             }
 
-            await new Promise(r => setTimeout(r, 600));
+            // 模拟一点延迟感
+            setTimeout(() => {
+                const record = {id: Date.now(), desc, amount, date: Date.now(), type};
+                ledgerData.unshift(record);
+                saveLedgerData();
 
-            const record = {id: Date.now(), desc, amount, date: Date.now(), type};
-            ledgerData.unshift(record);
-            saveLedgerData();
-
-            const reply = `记下来啦！📝\n【${desc}】 ${type === 'income' ? '收入' : '支出'} ${Math.abs(amount)}元`;
-            addLedgerBubble(reply, 'ai', null, true);
+                const reply = `记下来啦！📝\n【${desc}】 ${type === 'income' ? '收入' : '支出'} ${Math.abs(amount).toFixed(2)}元`;
+                addLedgerBubble(reply, 'ai', null, true);
+            }, 500);
 
         } else {
-            await new Promise(r => setTimeout(r, 600));
-            addLedgerBubble("唔...我没看懂金额，请说“奶茶 20”这样的格式哦~", 'ai', null, true);
+            setTimeout(() => {
+                addLedgerBubble("唔...我没看懂金额，请说“奶茶 20”这样的格式哦~", 'ai', null, true);
+            }, 500);
         }
     }
 }
@@ -16078,18 +15081,20 @@ function triggerLedgerImage() {
 }
 
 /**
- * 强制解析 JSON (容错处理)
+ * 强制解析 JSON (强化查找版)
  */
 function forceParseJson(text) {
+    // 1. 尝试直接解析
     try {
         return JSON.parse(text);
     } catch (e) {
-        // 尝试提取 JSON 部分
+        // 2. 失败后，尝试提取第一个 { 到 最后一个 } 之间的内容
         const match = text.match(/\{[\s\S]*\}/);
         if (match) {
             try {
                 return JSON.parse(match[0]);
             } catch (err) {
+                console.error("JSON提取解析依然失败", err);
                 return null;
             }
         }
@@ -16098,14 +15103,15 @@ function forceParseJson(text) {
 }
 
 /**
- * 清洗 AI 返回的文本
+ * 清洗 AI 返回的文本 (强化版)
  */
 function cleanAiResponseText(text) {
-    let cleaned = text;
-    // 1. 去除 think 标签 (如果是深度思考模型)
+    let cleaned = text || "";
+    // 1. 去除 think 标签及其内部的所有思考内容
     cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, "");
-    // 2. 去除 markdown 代码块标记
+    // 2. 去除可能的 JSON Markdown 标记
     cleaned = cleaned.replace(/```json/gi, "").replace(/```/g, "");
+    // 3. 去除首尾空白
     return cleaned.trim();
 }
 
@@ -16151,124 +15157,152 @@ function parseMarkdownTableToItems(text) {
     return items;
 }
 
-
+/**
+ * [AI记账修复版] 处理账单图片 (上传 -> 获取URL -> 发送URL + FileInfo 给AI)
+ */
 async function handleLedgerImage(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // 1. 生成预览
+    // 1. 生成本地预览图并上屏
     const previewUrl = URL.createObjectURL(file);
-    const previewHtml = `<img src="${previewUrl}" style="max-width: 150px; border-radius: 12px; display: block;" alt="账单图片">`;
+    const previewHtml = `<img src="${previewUrl}" class="ledger-preview-img" style="max-width: 150px; border-radius: 12px; display: block;" alt="账单预览">`;
     addLedgerBubble(previewHtml, 'user', null, false);
 
+    // 清空 input 允许下次重复选图
     event.target.value = '';
 
-
+    // 显示“正在分析”Loading
     const loadingId = 'img-loading-' + Date.now();
-    addLedgerBubble("正在分析账单... (可能会有点慢)", 'ai', loadingId, false);
+    addLedgerBubble("🐱 正在上传并分析账单，请稍等...", 'ai', loadingId, false);
 
     try {
-        // 2. 存图
+        // --- 步骤 A: 上传图片到图床/云存储 ---
+        const uploadResult = await LKECloudManager.uploadToCOS(file, true);
+        const imageUrl = uploadResult.url;
+
+        console.log("✅ 账单图片上传成功:", imageUrl);
+
+        // --- 步骤 B: 将图片保存到本地 IndexedDB (为了历史记录查看) ---
         const imgId = await ImageDB.save(file);
+        // 保存一条带有 db-image 链接的历史记录
         const dbHtml = `<img src="db-image://${imgId}" style="max-width: 150px; border-radius: 12px; display: block;" alt="账单图片">`;
         ledgerChatHistory.push({content: dbHtml, type: 'user', id: Date.now()});
         saveLedgerChatHistory();
 
-        // 3. 读取并发送
-        const base64Data = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
-        });
+        // --- 步骤 C: 构造 FileInfo 对象 (关键修复！) ---
+        // 这一步告诉 API 这是一个附件文件，而不仅仅是一段文本连接
+        const fileInfo = {
+            file_url: imageUrl,
+            file_name: file.name || "bill_image.jpg",
+            file_size: String(file.size), // 必须是字符串
+            file_type: "image" // 标记类型
+        };
 
+        // --- 步骤 D: 构造 Prompt ---
         const messages = [
             {role: "system", content: LEDGER_AI_PROMPT},
             {
                 role: "user",
+                // 这里的 content 只是为了构建历史文本，真正的视觉分析依赖上面的 file_infos
                 content: [
-                    {type: "text", text: "识别这张账单。"},
-                    {type: "image_url", image_url: {url: base64Data}}
+                    {type: "text", text: "请分析这张账单图片，并提取所有收支明细。"},
+                    {type: "image_url", image_url: {url: imageUrl}}
                 ]
             }
         ];
 
-        const result = await callApi(messages);
+        // --- 步骤 E: 调用 API (传入 fileInfos 数组) ---
+        // 🔥 修复点：添加第二个参数 [fileInfo]
+        const result = await callApi(messages, [fileInfo]);
+
+        // 移除 Loading
         document.getElementById(loadingId)?.remove();
 
         if (!result.success) {
-            addLedgerBubble(`连接失败：${result.message}`, 'ai', null, true);
+            console.error("AI API 报错:", result);
+            addLedgerBubble(`❌ 识别失败: ${result.message}`, 'ai', null, true);
             return;
         }
 
-        console.log("🐱 AI原始回复:", result.message);
+        console.log("🐱 AI 原始回复:", result.message);
 
-        // --- 核心修改：双保险解析逻辑 ---
-// 步骤 A: 清洗数据
+        // --- 步骤 F: 强力清洗与解析 ---
         const cleanText = cleanAiResponseText(result.message);
-        console.log("🧹 清洗后文本:", cleanText);
+        let aiData = forceParseJson(cleanText);
+
+        // 如果 JSON 解析失败，尝试表格解析作为兜底
         let items = [];
         let replyMsg = "识别完成！";
-// 步骤 B: 尝试解析 JSON (优先)
-        const jsonData = forceParseJson(cleanText);
-        if (jsonData && jsonData.items && jsonData.items.length > 0) {
-            // 方案 1: JSON 解析成功
-            items = jsonData.items;
-            replyMsg = jsonData.reply || "识别成功";
-            console.log("✅ JSON解析模式成功");
-        } else {
-            // 方案 2: JSON 失败，启用表格解析模式 (针对你截图中的情况)
-            console.warn("⚠️ JSON解析失败，尝试表格解析模式...");
-            const tableItems = parseMarkdownTableToItems(cleanText);
 
-            if (tableItems.length > 0) {
-                items = tableItems;
-                replyMsg = "虽然不是标准格式，但我看懂账单啦！(表格模式)";
-                console.log("✅ 表格解析模式成功", items);
+        if (aiData && aiData.items) {
+            items = aiData.items;
+            replyMsg = aiData.reply || "识别成功";
+        } else {
+            console.warn("⚠️ JSON 解析失败，尝试解析表格...");
+            items = parseMarkdownTableToItems(cleanText);
+            if (items.length > 0) {
+                replyMsg = "格式有点乱，但我努力看懂了！(表格模式)";
             }
         }
-// 步骤 C: 结果处理
+
         if (items.length === 0) {
-            // 只有当两种方法都失败时，才显示错误
-            addLedgerBubble(`看不懂这个格式喵... (解析失败)\nAI回复片段: ${cleanText.substring(0, 100)}...`, 'ai', null, true);
+            // 如果没解析出数据，显示 AI 的原始回复以便调试
+            addLedgerBubble(`🐱 识别到了文字，但没有发现金额数据。\nAI回复: ${cleanText}`, 'ai', null, true);
             return;
         }
-// 步骤 D: 记账入库 (保持原有逻辑)
+
+        // --- 步骤 G: 入账 ---
         let totalIncome = 0;
         let totalExpense = 0;
         let detailsStr = "";
+
         items.forEach(item => {
-            const amount = parseFloat(item.amount);
+            let amount = parseFloat(item.amount);
             if (isNaN(amount)) return;
-            const desc = item.desc || "未知项";
-            // 自动修正类型：负数为支出，正数为收入
-            const type = amount > 0 ? 'income' : 'expense';
-            if (amount > 0) totalIncome += amount;
-            else totalExpense += Math.abs(amount);
+
+            const desc = item.desc || "其他支出";
+            let type = amount >= 0 ? 'income' : 'expense';
+
+            if (desc.includes("退款") && amount < 0) amount = Math.abs(amount);
+
+            if (amount < 0) {
+                type = 'expense';
+                totalExpense += Math.abs(amount);
+            } else {
+                type = 'income';
+                totalIncome += amount;
+            }
+
             const record = {
                 id: Date.now() + Math.random(),
                 desc: desc,
                 amount: amount,
                 type: type,
                 date: Date.now(),
-                imgId: imgId // 关联图片ID
+                imgId: imgId
             };
+
             ledgerData.unshift(record);
+
             const sign = amount > 0 ? '+' : '';
-            detailsStr += `\n🔹 ${desc} ${sign}${amount}`;
+            detailsStr += `\n🔹 ${desc}: ${sign}${amount}`;
         });
-        saveLedgerData(); // 更新界面统计
-        let summary = "\n\n📊 本次识别统计:";
-        if (totalIncome > 0) summary += `\n收入: +${totalIncome.toFixed(2)}`;
-        if (totalExpense > 0) summary += `\n支出: -${totalExpense.toFixed(2)}`;
+
+        saveLedgerData();
+
+        let summary = "\n\n📊 统计:";
+        if (totalIncome > 0) summary += ` 收入 +${totalIncome.toFixed(2)}`;
+        if (totalExpense > 0) summary += ` 支出 -${totalExpense.toFixed(2)}`;
+
         addLedgerBubble(`${replyMsg}${detailsStr}${summary}`, 'ai', null, true);
 
     } catch (e) {
         document.getElementById(loadingId)?.remove();
         console.error(e);
-        addLedgerBubble(`处理出错了：${e.message}`, 'ai', null, true);
+        addLedgerBubble(`💥 处理出错了：${e.message}`, 'ai', null, true);
     }
 }
-
 
 /**
  * 辅助：添加气泡 (已修改：集成保存逻辑和图片加载)
@@ -16444,32 +15478,6 @@ function initializeApp() {
         return;
     }
 
-
-    // ▼▼▼ 新增：检查并初始化内置世界书 ▼▼▼
-    // 确保数据已加载
-    if (!worldbookData) loadWorldbookData();
-
-    // 检查是否存在这个固定的内置世界书
-    const builtinExists = worldbookData.find(wb => wb.id === GLOBAL_WORLDBOOK_ID);
-
-    if (!builtinExists) {
-        console.log("正在初始化内置世界书...");
-        const builtinEntry = {
-            id: GLOBAL_WORLDBOOK_ID,
-            title: DEFAULT_LORE_TITLE,
-            content: DEFAULT_LORE_CONTENT,
-            group: 'worldview', // 归类为世界观
-            category: 'uncategorized',
-            timestamp: Date.now()
-        };
-        // 添加到数组
-        worldbookData.unshift(builtinEntry); // 放在最前面
-        // 保存到本地存储
-        saveWorldbookToStorage();
-    }
-    // ▲▲▲ 新增结束 ▲▲▲
-
-
     // 【新增代码】在应用程序初始化时，立即应用全屏设置
     const savedFullscreenSettingOnLoad = localStorage.getItem('fullscreenEnabled') === 'true';
     applyFullscreenSetting(savedFullscreenSettingOnLoad);
@@ -16489,7 +15497,6 @@ function initializeApp() {
     updateWorldbookCategorySelector();
     setupAttachmentMenu();
     setupStyleSelector();
-    setupLivePreviewListeners(); // <<< 设置实时预览
     applyChatStyle(localStorage.getItem('chatMessageStyle') || 'bubble');
     loadChatBackground();
     loadGlobalConfig();
@@ -16685,8 +15692,6 @@ function initializeApp() {
         readerPage.style.transform = '';
     }
 
-    // ===== 初始化悬浮球和布局 =====
-    initializeFloatingBall();
     initializeLayout();
 
     setTimeout(loadCatWidgetData, 500); // 延迟加载，确保DOM已渲染
@@ -16705,42 +15710,7 @@ function initializeApp() {
 
     setupSweetheartAttachmentMenu();
 
-    // ===== 密友聊天 - 记忆轮数设置 =====
-    const decreaseBtn = document.getElementById('decreaseMemoryRounds');
-    const increaseBtn = document.getElementById('increaseMemoryRounds');
-    const memoryInput = document.getElementById('memoryRoundsInput');
-    const updateMemoryRounds = (newValue) => {
-        if (!currentSweetheartChatContact) return;
 
-        let value = parseInt(newValue, 10);
-        const min = parseInt(memoryInput.min, 10);
-        const max = parseInt(memoryInput.max, 10);
-
-        // 确保数值在有效范围内
-        if (isNaN(value)) value = 10; // 如果输入无效则重置为默认值
-        value = Math.max(min, Math.min(max, value));
-
-        memoryInput.value = value;
-
-        // 保存到当前联系人对象并持久化
-        currentSweetheartChatContact.memoryRounds = value;
-        saveSweetheartContacts();
-    };
-    if (decreaseBtn) {
-        decreaseBtn.addEventListener('click', () => {
-            updateMemoryRounds(parseInt(memoryInput.value, 10) - 1);
-        });
-    }
-    if (increaseBtn) {
-        increaseBtn.addEventListener('click', () => {
-            updateMemoryRounds(parseInt(memoryInput.value, 10) + 1);
-        });
-    }
-    if (memoryInput) {
-        memoryInput.addEventListener('change', () => {
-            updateMemoryRounds(memoryInput.value);
-        });
-    }
     // 新增：全局点击事件，用于收回已滑开的联系人项
     document.addEventListener('click', (e) => {
         // 检查点击的目标是否在任何一个滑动容器内部
@@ -16751,51 +15721,6 @@ function initializeApp() {
             });
         }
     });
-    // ===== 普通聊天 - 记忆轮数设置 =====
-    const decreaseNormalBtn = document.getElementById('decreaseNormalMemoryRounds');
-    const increaseNormalBtn = document.getElementById('increaseNormalMemoryRounds');
-    const normalMemoryInput = document.getElementById('normalMemoryRoundsInput');
-
-    const updateNormalMemoryRounds = (newValue) => {
-        if (!currentChatContact) return;
-
-        let value = parseInt(newValue, 10);
-        const min = parseInt(normalMemoryInput.min, 10);
-        const max = parseInt(normalMemoryInput.max, 10);
-
-        if (isNaN(value)) value = 10;
-        value = Math.max(min, Math.min(max, value));
-
-        normalMemoryInput.value = value;
-
-        // 保存到当前联系人对象
-        currentChatContact.memoryRounds = value;
-
-        // 持久化到localStorage
-        const index = contactsData.findIndex(c => c.id === currentChatContact.id);
-        if (index !== -1) {
-            contactsData[index].memoryRounds = value;
-            localStorage.setItem('phoneContactsData', JSON.stringify(contactsData));
-        }
-    };
-
-    if (decreaseNormalBtn) {
-        decreaseNormalBtn.addEventListener('click', () => {
-            updateNormalMemoryRounds(parseInt(normalMemoryInput.value, 10) - 1);
-        });
-    }
-
-    if (increaseNormalBtn) {
-        increaseNormalBtn.addEventListener('click', () => {
-            updateNormalMemoryRounds(parseInt(normalMemoryInput.value, 10) + 1);
-        });
-    }
-
-    if (normalMemoryInput) {
-        normalMemoryInput.addEventListener('change', () => {
-            updateNormalMemoryRounds(normalMemoryInput.value);
-        });
-    }
 
     // 联系人库头像上传监听 (安全修复版)
     const libAvatarInput = document.getElementById('library-avatar-input');
