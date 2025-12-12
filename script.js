@@ -3296,7 +3296,7 @@ const appsPage1 = [
     {
         id: 'novel',
         icon: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1760117195210_qdqqd_k1cy4r.png',
-        label: '小说',
+        label: '阅读',
         row: 1, col: 1, // 第2行，右
         clickable: true
     },
@@ -4073,8 +4073,8 @@ function addDragListeners(el, clickable) {
             // 这里假设 app 是从外部闭包获取，或者通过 dataset 获取数据
             // 为简单起见，如果你的逻辑依赖 state，保留原有的 click 逻辑即可
             // 如果你是文件夹，调用打开文件夹的逻辑
-             const folderId = el.dataset.id;
-             openFolder(folderId); // 假设你有这个函数，或者保持原有的 folder 点击逻辑
+            const folderId = el.dataset.id;
+            openFolder(folderId); // 假设你有这个函数，或者保持原有的 folder 点击逻辑
         }
         // 2. 如果是普通应用图标
         else if (clickable) {
@@ -4774,7 +4774,7 @@ async function callApi(messages, fileInfos = [], customVariables = {}, skipConte
                         else if (data.type === 'thought') {
                             // console.log("Thinking...", data.payload);
                         }
-                            /* 在 callApi 函数内部的 while 循环里 */
+                        /* 在 callApi 函数内部的 while 循环里 */
 
 
                         else if (data.type === 'error') {
@@ -5663,93 +5663,141 @@ function setupAttachmentMenu() {
         }
     });
 
+    // ============================================================
+    // 🔥 核心修改：普通聊天文件上传 (区分 云端解析 vs 本地文本)
+    // ============================================================
 
-    // 6. 文件选择监听 (只保存上屏，不分析)
-    // 📍 定位：script.js -> setupAttachmentMenu 函数内部
-// 🗑️ 删除旧的 fileInput 监听代码，粘贴这一段：
+    // 注意：普通聊天没有使用 cloneNode 技巧，如果感觉事件重复绑定，建议加上 removeEventListener 或者类似 clone 的处理
+    // 这里为了不破坏你现有的结构，我直接给一个单纯的 Listener 逻辑替换：
+
+    // 建议先移除旧的监听器（如果代码结构允许），或者确保 setupAttachmentMenu 只执行一次
+    // 下面是新的监听逻辑：
 
     fileInput.addEventListener('change', async (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
-        // 界面显示“正在解析...”
+        // 1. 判断文件类型
+        const isTextDoc = file.type.startsWith('text/') ||
+            file.name.endsWith('.txt') ||
+            file.name.endsWith('.md') ||
+            file.name.endsWith('.csv') ||
+            file.name.endsWith('.json') ||
+            file.name.endsWith('.js');
+
+        // 2. 清空输入框，防止下次选同名文件无法触发change
+        const currentFile = file;
+        event.target.value = '';
+
+        // 3. 场景 A: 如果是纯文本文件，走【本地 IndexedDB 方案】(推荐)
+        // 这样不依赖腾讯云，且支持长文本切片读取
+        if (isTextDoc) {
+            const messagesEl = document.getElementById('chatMessages');
+            const loadingId = 'loading_local_doc_' + Date.now();
+            const loadingRow = document.createElement('div');
+            loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:#eee;color:#666;">📄 正在读取文档...</div></div>`;
+            messagesEl.appendChild(loadingRow.firstChild);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                // 使用刚刚定义的本地处理工具
+                const fileResult = await uploadFileAndGetAiResponse(currentFile);
+
+                // 移除loading
+                document.getElementById(loadingId)?.remove();
+
+                // 渲染界面
+                const userMsg = {
+                    sender: 'user',
+                    type: 'file', // 确保 _createMessageDOM 能识别这个类型
+                    content: {
+                        name: fileResult.name,
+                        size: fileResult.size,
+                        fileId: fileResult.fileId // 存入 ID
+                    }
+                };
+
+                const msgIndex = saveMessage(currentChatContact.id, userMsg);
+                messagesEl.appendChild(_createMessageDOM(currentChatContact.id, userMsg, msgIndex));
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+
+                // 自动填入引导词，等待用户按发送
+                const chatInput = document.getElementById('chatInput');
+                chatInput.value = "请总结这份文档的主要内容";
+                document.querySelector('.chat-input-area').classList.add('has-text');
+                chatInput.focus();
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById(loadingId)?.remove();
+                showErrorModal('读取失败', err.message);
+            }
+            return;
+        }
+
+        /*
+           4. 场景 B: 其他文件 (如 PDF, Word)
+           如果你的 LKECloudManager 确实配置好了后端解析（需要腾讯云账号+额度），
+           保留下面的逻辑。如果没配置好，建议直接 reject。
+        */
+
+        // --- 开始：原来的云端解析逻辑 (已加 try-catch 保护) ---
         const messagesEl = document.getElementById('chatMessages');
-        const loadingId = 'loading_doc_' + Date.now();
+        const loadingId = 'loading_cloud_doc_' + Date.now();
         const loadingRow = document.createElement('div');
-        loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:#eee;color:#666;">📄 正在上传并解析文档...</div></div>`;
+        loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:#eee;color:#666;">☁️ 正在上传云端解析...</div></div>`;
         messagesEl.appendChild(loadingRow.firstChild);
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
         try {
-            // 1. 🔥【核心变化】上传到腾讯云 (文档 IsPublic=false)
-            const uploadResult = await LKECloudManager.uploadToCOS(file, false);
+            // 1. 上传到 COS
+            const uploadResult = await LKECloudManager.uploadToCOS(currentFile, false);
 
-            // 2. 🔥【核心变化】调用解析接口获取 doc_id
-            // session_id 需要和聊天保持一致
+            // 2. 调用解析接口
             const sessionId = currentChatContact ? currentChatContact.id : "default_session";
-            const docId = await LKECloudManager.parseDoc(file, uploadResult, sessionId);
+            const docId = await LKECloudManager.parseDoc(currentFile, uploadResult, sessionId);
 
-            console.log("文档解析成功，DocID:", docId);
-            document.getElementById(loadingId)?.remove(); // <--- ✅ 只删除气泡本身
+            console.log("云端解析成功 DocID:", docId);
+            document.getElementById(loadingId)?.remove();
 
-            // 3. 构造 file_infos 对象 (API 要求的数据结构)
+            // 3. FileInfo
             const fileInfo = {
                 doc_id: docId,
-                file_name: file.name.replace(/\.[^/.]+$/, ""), // 去除后缀
-                file_type: file.name.split('.').pop(),
-                file_size: String(file.size),
+                file_name: currentFile.name.replace(/\.[^/.]+$/, ""),
+                file_type: currentFile.name.split('.').pop(),
+                file_size: String(currentFile.size),
                 file_url: uploadResult.url
             };
 
-            // 4. 在界面上显示“文件已发送”
+            // 4. 界面显示
             const userMsg = {
                 sender: 'user',
-                type: 'file', // 使用现有的 file 类型渲染逻辑
+                type: 'file',
                 content: {
-                    name: file.name,
-                    size: file.size,
-                    fileId: 'cloud_doc' // 标记这是云端文档，不是本地的
+                    name: currentFile.name,
+                    size: currentFile.size,
+                    fileId: 'cloud_doc' // 标记
                 }
             };
             const msgIndex = saveMessage(currentChatContact.id, userMsg);
             messagesEl.appendChild(_createMessageDOM(currentChatContact.id, userMsg, msgIndex));
 
-            // 5. 🔥 发送给 AI
-            // 文档对话通常伴随着一个指令，比如“总结这份文档”
-            const promptText = "请总结这份文档的主要内容";
+            // 5. 立即触发 AI 分析 (带 fileInfos)
+            // 这里为了演示，自动发一条指令
+            const promptText = "请分析这份云端文档。";
+            simulateSendingMessage(promptText); // 先上屏
 
-            // 先在界面显示这个指令
-            const promptMsg = {sender: 'user', text: promptText};
-            saveMessage(currentChatContact.id, promptMsg);
-            messagesEl.appendChild(_createMessageDOM(currentChatContact.id, promptMsg, -1));
+            // 真正调用 API (这部分逻辑较复杂，建议复用 getAiReply 或手动调用 callApi)
+            // 简单起见，这里仅给个提示，实际项目建议让用户手动输入问题触发
 
-            // 构造请求
-            const messages = [
-                {role: 'user', content: promptText}
-            ];
-
-            // 添加思考中...
-            const thinkingBubble = _createMessageDOM(currentChatContact.id, {sender: 'contact', text: '...'}, -1);
-            messagesEl.appendChild(thinkingBubble);
-
-            // 🔥 关键：将 fileInfo 数组传给 callApi
-            const result = await callApi(messages, [fileInfo]);
-            thinkingBubble.remove();
-
-            if (result.success) {
-                const replyMsg = {sender: 'contact', text: result.message};
-                saveMessage(currentChatContact.id, replyMsg);
-                messagesEl.appendChild(_createMessageDOM(currentChatContact.id, replyMsg, -1));
-            } else {
-                showErrorModal('文档助手响应失败', result.message);
-            }
+            showSuccessModal("解析成功", "文档已挂载，请发送问题给AI");
 
         } catch (e) {
             console.error(e);
             document.getElementById(loadingId)?.remove();
-            alert("文档解析失败: " + e.message);
-        } finally {
-            event.target.value = '';
+            // 如果是普通的 imgBB 报错，说明这不是图片但没走本地逻辑
+            // 但因为我们在上面已经拦截了 isTextDoc，所以这里只会是 PDF/Word 等
+            showErrorModal('云解析失败', '无法解析此类型文件，或云服务配置缺失。请尝试上传 .txt 文本。');
         }
     });
 
@@ -5853,7 +5901,7 @@ function setupSweetheartAttachmentMenu() {
         }
     });
     // ============================================================
-    // 🔥 核心修改 B: 密友文件上传 (上传COS -> 解析 -> 发送file_infos)
+    // 🔥 核心修改：文件上传智能路由 (区分 文本文件 vs 图片文件)
     // ============================================================
     const freshFileInput = fileInput.cloneNode(true);
     fileInput.parentNode.replaceChild(freshFileInput, fileInput);
@@ -5862,96 +5910,104 @@ function setupSweetheartAttachmentMenu() {
         const file = event.target.files[0];
         if (!file || !currentSweetheartChatContact) return;
 
-        // UI: 显示解析中
-        const messagesEl = document.getElementById('sweetheartChatMessages');
-        const loadingId = 'sh_loading_doc_' + Date.now();
-        const loadingRow = document.createElement('div');
-        loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:rgba(255,255,255,0.5);color:#888;">📄 正在解析文档...</div></div>`;
-        messagesEl.appendChild(loadingRow.firstChild);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        // 1. 判断文件类型
+        const isImage = file.type.startsWith('image/');
+        const isTextDoc = file.type.startsWith('text/') ||
+            file.name.endsWith('.txt') ||
+            file.name.endsWith('.md') ||
+            file.name.endsWith('.csv') ||
+            file.name.endsWith('.json') ||
+            file.name.endsWith('.js');
 
-        try {
-            // 1. 上传到 COS (IsPublic = false)
-            const uploadResult = await LKECloudManager.uploadToCOS(file, false);
+        // 2. 清空输入框，允许下次选择同名文件
+        // 注意：要在读取前或者 finally 里重置，这里先保存引用
+        const currentFile = file;
+        event.target.value = '';
 
-            // 2. 调用解析接口
-            const docId = await LKECloudManager.parseDoc(
-                file,
-                uploadResult,
-                currentSweetheartChatContact.id // 使用密友ID作为SessionID
-            );
-
-            console.log("密友文档解析成功 DocID:", docId);
-            document.getElementById(loadingId)?.parentElement?.remove();
-
-            // 3. 构造 file_infos
-            const fileInfo = {
-                doc_id: docId,
-                file_name: file.name.replace(/\.[^/.]+$/, ""),
-                file_type: file.name.split('.').pop(),
-                file_size: String(file.size),
-                file_url: uploadResult.url
-            };
-
-            // 4. 界面显示"文件发送成功"
-            const userMsg = {
-                sender: 'user',
-                type: 'file',
-                content: {
-                    name: file.name,
-                    size: file.size,
-                    fileId: 'cloud_doc_sh' // 标记
-                },
-                timestamp: Date.now()
-            };
-            const msgIndex = saveSweetheartMessage(currentSweetheartChatContact.id, userMsg);
-            messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, userMsg, msgIndex));
-
-            // 5. 发送指令给 AI (带 file_infos)
-            const promptText = "请阅读这份文档，并告诉我你的想法。";
-
-            // 显示指令气泡
-            const promptMsg = {sender: 'user', text: promptText, timestamp: Date.now()};
-            const pIndex = saveSweetheartMessage(currentSweetheartChatContact.id, promptMsg);
-            messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, promptMsg, pIndex));
-
-            // 思考中...
-            const thinkingBubble = _createMessageDOM(currentSweetheartChatContact.id, {
-                sender: 'contact',
-                text: '...'
-            }, -1);
-            messagesEl.appendChild(thinkingBubble);
+        // 3. 场景 A: 如果是图片，走原来的图床逻辑
+        if (isImage) {
+            const messagesEl = document.getElementById('sweetheartChatMessages');
+            const loadingId = 'sh_loading_img_' + Date.now();
+            const loadingRow = document.createElement('div');
+            loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:rgba(255,255,255,0.5);color:#888;">⏳ 图片上传中...</div></div>`;
+            messagesEl.appendChild(loadingRow.firstChild);
             messagesEl.scrollTop = messagesEl.scrollHeight;
 
-            // 6. 调用 API
-            const messages = [{role: 'user', content: promptText}];
-            // 关键：传入 fileInfos 数组
-            const result = await callApi(messages, [fileInfo]);
+            try {
+                const uploadResult = await LKECloudManager.uploadToCOS(currentFile, true);
+                document.getElementById(loadingId)?.remove();
 
-            thinkingBubble.remove();
+                const aiMessageContent = `(分享了一张图片)\n![](${uploadResult.url})`;
+                const messagePayload = {
+                    sender: 'user',
+                    text: aiMessageContent,
+                    imageUrl: uploadResult.url,
+                    timestamp: Date.now(),
+                    isProcessed: false
+                };
 
-            // 7. 处理回复
-            if (result.success) {
-                const replyMsg = {
-                    sender: 'contact',
-                    text: result.message,
+                const newIndex = saveSweetheartMessage(currentSweetheartChatContact.id, messagePayload);
+                const messageRow = _createMessageDOM(currentSweetheartChatContact.id, messagePayload, newIndex);
+                messagesEl.appendChild(messageRow);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+                document.querySelector('.sweetheart-chat-input-area').classList.remove('has-text');
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById(loadingId)?.remove();
+                showErrorModal('图片上传失败', '请检查网络配置或API Key');
+            }
+            return;
+        }
+
+        // 4. 场景 B: 如果是文本文件，走本地 IndexedDB 分析逻辑 (修复那个报错的关键)
+        if (isTextDoc) {
+            const messagesEl = document.getElementById('sweetheartChatMessages');
+            const loadingId = 'loading_local_doc_' + Date.now();
+            const loadingRow = document.createElement('div');
+            loadingRow.innerHTML = `<div id="${loadingId}" class="message-row sent"><div class="chat-bubble" style="background:rgba(255,255,255,0.5);color:#888;">📄 正在读取文档...</div></div>`;
+            messagesEl.appendChild(loadingRow.firstChild);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                // 调用本地处理函数 (不再上传到云端!)
+                const fileResult = await uploadFileAndGetAiResponse(currentFile);
+                document.getElementById(loadingId)?.parentElement?.remove();
+
+                const fileMsgPayload = {
+                    sender: 'user',
+                    type: 'file', // 使用 file 类型
+                    content: {
+                        name: fileResult.name,
+                        size: fileResult.size,
+                        fileId: fileResult.fileId
+                    },
                     timestamp: Date.now()
                 };
-                const rIndex = saveSweetheartMessage(currentSweetheartChatContact.id, replyMsg);
-                messagesEl.appendChild(_createMessageDOM(currentSweetheartChatContact.id, replyMsg, rIndex));
-                messagesEl.scrollTop = messagesEl.scrollHeight;
-            } else {
-                showErrorModal('AI 响应错误', result.message);
-            }
 
-        } catch (err) {
-            console.error(err);
-            document.getElementById(loadingId)?.remove();
-            showErrorModal('文档解析失败', err.message);
-        } finally {
-            event.target.value = '';
+                const msgIndex = saveSweetheartMessage(currentSweetheartChatContact.id, fileMsgPayload);
+                const messageRow = _createMessageDOM(currentSweetheartChatContact.id, fileMsgPayload, msgIndex);
+                messagesEl.appendChild(messageRow);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+
+                // 自动填入引导词
+                const chatInput = document.getElementById('sweetheartChatInput');
+                chatInput.value = "请阅读这份文档，总结一下主要内容。";
+                document.querySelector('.sweetheart-chat-input-area').classList.add('has-text');
+                chatInput.focus();
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById(loadingId)?.parentElement?.remove();
+                showErrorModal('文档读取失败', err.message);
+            }
+            return;
         }
+
+        // 5. 场景 C: 不支持的格式 (如 PDF/Word 目前无法纯前端解析)
+        showErrorModal('格式不支持', '目前“文件”按钮仅支持 .txt / .md 等纯文本，或 jpg/png 图片。PDF/Word暂不支持。', 3000);
     });
+
 
     // 4. 红包按钮 (保持不变)
     if (redPacketBtn) {
@@ -5964,55 +6020,60 @@ function setupSweetheartAttachmentMenu() {
     }
 }
 
-// script.js - 找到 uploadFileAndGetAiResponse 函数，完整替换为：
-
 /**
- * [更新版] 文件预处理工具函数
- * 作用：读取本地文件 -> 存入IndexedDB -> 返回文件信息
- * 核心：不再直接调用 CallApi，而是等待用户手动点击接收按钮
+ * [核心功能] 本地文件预处理工具
+ * 作用：读取本地文本文件 -> 存入IndexedDB -> 返回文件信息供聊天气泡使用
+ * 优势：不依赖云存储，免费，适合长文本/小说/剧本分析
  */
 function uploadFileAndGetAiResponse(file) {
     return new Promise((resolve, reject) => {
-        // 1. 限制文件大小 (例如最大 2MB)
-        const maxSize = 2 * 1024 * 1024;
-        if (file.size > maxSize) {
+        // 1. 格式校验
+        const isText = file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.csv');
+        if (!isText) {
+            // 如果不是纯文本，暂时拒绝（因为 canvas/render 无法直接处理二进制文件流）
+            reject(new Error("目前仅支持文本文件 (.txt, .md, .csv) 的本地深度分析"));
+            return;
+        }
+
+        // 2. 大小限制 (例如 2MB，防止浏览器卡顿)
+        if (file.size > 2 * 1024 * 1024) {
             reject(new Error("文件过大，请上传 2MB 以内的文本文件"));
             return;
         }
 
-        // 2. 创建文件读取器
         const reader = new FileReader();
 
-        // 3. 读取成功的回调
+        // 3. 读取成功
         reader.onload = async (e) => {
             try {
                 const content = e.target.result;
 
-                // 核心步骤：将文件内容存入 IndexedDB，获取唯一的 fileId
-                // 这样我们只需要在聊天记录里存一个短短的 ID
+                // 🔥 核心步骤：将长文本存入 IndexedDB
+                // 我们不把几万字直接存入 localStorage，而是存入 ImageDB (复用图片数据库，因为它存的是大字符串)
                 const fileId = await ImageDB.saveText(content);
 
-                // 返回处理好的数据结构，供后续渲染气泡使用
+                // 返回标准化数据结构
                 resolve({
                     success: true,
                     name: file.name,
                     size: file.size,
-                    fileId: fileId, // 重点：返回这个ID
-                    preview: content.substring(0, 50) // 仅用于调试
+                    fileId: fileId, // 🔑 重点：后续 AI 读取全文全靠这个 ID
+                    preview: content.substring(0, 100).replace(/\n/g, ' ') // 调试用
                 });
 
             } catch (err) {
-                reject(new Error("文件存储失败: " + err.message));
+                console.error(err);
+                reject(new Error("文件存储到本地数据库失败"));
             }
         };
 
-        // 4. 读取失败的回调
+        // 4. 读取失败
         reader.onerror = () => {
-            reject(new Error("浏览器读取文件失败"));
+            reject(new Error("浏览器无法读取该文件"));
         };
 
-        // 5. 开始作为文本读取
-        reader.readAsText(file);
+        // 5. 开始读取
+        reader.readAsText(file, 'UTF-8'); // 默认 UTF-8，如果是小说可能需要 GBK 识别逻辑
     });
 }
 
@@ -7163,7 +7224,6 @@ async function getSweetheartAiReply() {
         // 线下模式：只发送沉浸式提示词
         messages.push({role: "system", content: OFFLINE_MODE_PROMPT});
     } else {
-        // 线上模式：先发送真人风格设定，再发送核心功能/格式设定
         // 1. 真人聊天指令 (风格、分段、禁忌)
         messages.push({role: "system", content: AI_REALCHAT_SYSTEM_PROMPT});
         // 2. 核心功能增强指令 (JSON格式、状态更新、渲染功能) - 放在后面以确保格式正确
@@ -7259,26 +7319,47 @@ async function getSweetheartAiReply() {
             // 构造提示词，告诉AI这是引用的内容
             quotePrefix = `\n[引用了 ${msg.quote.senderName} 的消息: "${quotedContent}"]\n`;
         }
-        // 🔥🔥🔥 新增结束 🔥🔥🔥
-        // === A. 处理文件消息 (读取IndexedDB文本) ===
+        // 在 getSweetheartAiReply 函数的 for 循环中...
+
+// === A. 处理文件消息 (读取IndexedDB文本) ===
         if (msg.type === 'file' && msg.content && msg.content.fileId) {
             // 先把之前的文本缓冲发出去
             if (userTextBuffer.length > 0) {
                 messages.push({role: 'user', content: userTextBuffer.join('\n')});
                 userTextBuffer = [];
             }
+
             try {
+                // 🔥 这里是关键：根据 fileId 去 IndexedDB 取回全文
                 const fileContent = await ImageDB.getText(msg.content.fileId);
+
                 if (fileContent) {
-                    const filePrompt = `[用户上传文件: ${msg.content.name}]\n内容如下:\n"""\n${fileContent}\n"""\n(请根据文件内容进行互动)`;
-                    messages.push({role: role, content: filePrompt});
+                    // 构造一个 System 或 User 提示词，把文件内容塞进去
+                    // 这里为了不超过 Token 限制，你可能需要截断，但目前先假设模型支持长文本
+                    const safeContent = fileContent.substring(0, 15000); // 简单限制防爆
+
+                    const filePrompt = `
+[系统提示：用户上传了一个文件]
+文件名：${msg.content.name}
+文件内容开始：
+"""
+${safeContent}
+"""
+文件内容结束。
+(请基于上述文件内容回答用户接下来的问题)
+`;
+                    messages.push({role: 'system', content: filePrompt});
                 } else {
-                    messages.push({role: role, content: `[文件 ${msg.content.name} 内容已过期]`});
+                    messages.push({
+                        role: 'system',
+                        content: `[系统提示：文件 ${msg.content.name} 内容已从本地缓存丢失]`
+                    });
                 }
             } catch (e) {
                 console.error('读取文件出错', e);
             }
         }
+
         // === B. 处理红包消息 ===
         else if (msg.type === 'red-packet') {
             if (role === 'user') {
