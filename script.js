@@ -4387,10 +4387,11 @@ function updateSwipeTransform() {
 
 // ============ 结束：粘贴代码 ============
 
-
+// ✅ 修正后的代码
 document.addEventListener('touchmove', handleMove, {passive: false});
 document.addEventListener('mousemove', handleMove);
-document.addEventListener('touchend', (e) => handleEnd(e));
+// 修改下面这一行：将 handleEnd 改为 finishDrag
+document.addEventListener('touchend', () => finishDrag());
 
 screen.addEventListener('click', (e) => {
     if (e.target.closest('.chat-page, .contacts-page, .settings-page, .config-page, .beautify-page, .modal-overlay')) {
