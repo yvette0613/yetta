@@ -145,12 +145,9 @@ async function loadRealImage(imgElement) {
 }
 
 
-// ▼▼▼ 步骤3：将下面所有JS代码粘贴到 <script> 标签的最顶部 ▼▼▼
 /**
- * [最终健壮版] 智能AI JSON响应解析器
- * 它可以处理纯JSON、被文字包裹的JSON和被Markdown包裹的JSON
- * @param {string} rawMessage - 从AI获取的原始字符串
- * @returns {{chatReplyText: string, statusData: object|null}}
+ * [终极增强版] 智能AI JSON响应解析器
+ * 能够处理 <think> 标签、Markdown 包裹 和 纯文本
  */
 function parseAiJsonResponse(rawMessage) {
     if (!rawMessage || typeof rawMessage !== 'string') {
@@ -159,36 +156,37 @@ function parseAiJsonResponse(rawMessage) {
 
     let text = rawMessage.trim();
 
-    // 1. 尝试清理Markdown代码块标记
-    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    // 1. 🔍 核心修复：移除 <think>...</think> 思考过程
+    // 推理模型会先输出思考过程，这会导致 JSON.parse 失败，必须去掉
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
     text = text.trim();
 
-    // 2. 寻找JSON对象的边界 (从第一个 '{' 到最后一个 '}')
+    // 2. 清理 Markdown 代码块标记 (```json ... ```)
+    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+
+    // 3. 寻找外层 JSON 对象的边界
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');
 
     if (firstBrace !== -1 && lastBrace > firstBrace) {
         const jsonCandidate = text.substring(firstBrace, lastBrace + 1);
         try {
-            // 3. 尝试解析提取出的JSON字符串
             const parsed = JSON.parse(jsonCandidate);
-            console.log("✅ 智能提取并解析JSON成功！");
-
-            // 4. 从解析成功的数据中提取 reply 和 status
-            //    如果 reply 不存在，则将整个原始文本作为回复（以防万一）
+            // 4. 读取解析后的数据
+            // 如果 JSON 里有 reply 字段，就使用它；否则使用清洗后的文本
             return {
-                chatReplyText: parsed.reply || rawMessage,
+                chatReplyText: parsed.reply || text,
                 statusData: parsed.status || null
             };
         } catch (e) {
-            console.warn(`⚠️ 提取JSON后解析失败: ${e.message}。将作为纯文本处理。`);
+            console.warn(`⚠️ JSON解析失败（即使提取了括号）: ${e.message}`);
         }
     }
 
-    // 5. 如果所有尝试都失败，则返回原始文本
-    console.warn("⚠️ 未能解析出有效JSON，将作为纯文本处理。");
+    // 5. 降级处理：如果没有有效的 JSON，直接返回清洗后的文本
+    // 这样至少用户能看到 AI 的回复，而不是报错
     return {
-        chatReplyText: rawMessage,
+        chatReplyText: text || rawMessage,
         statusData: null
     };
 }
@@ -4061,38 +4059,44 @@ function createElement(app, grid) {
     }
 }
 
-
-/* script.js 中的 addDragListeners 函数部分 */
-
+/**
+ * [极简版] 仅保留点击功能，彻底移除拖拽逻辑
+ */
 function addDragListeners(el, clickable) {
-    // ... 前面的代码不变 ...
+    // 只监听点击事件
     el.addEventListener('click', (e) => {
+        // 防止事件冒泡
         e.stopPropagation();
 
-        // 1. 判断文件夹... (保持不变)
+        // 1. 如果是文件夹 (保留文件夹打开功能)
         if (el.classList.contains('folder')) {
-            // ... 保持不变 ...
+            // 这里假设 app 是从外部闭包获取，或者通过 dataset 获取数据
+            // 为简单起见，如果你的逻辑依赖 state，保留原有的 click 逻辑即可
+            // 如果你是文件夹，调用打开文件夹的逻辑
+             const folderId = el.dataset.id;
+             openFolder(folderId); // 假设你有这个函数，或者保持原有的 folder 点击逻辑
         }
-        // 2. 如果是可点击的应用图标
+        // 2. 如果是普通应用图标
         else if (clickable) {
             const id = el.dataset.id;
 
+            // 路由跳转逻辑
             if (id === 'settings') {
-                openSettings();
+                openSettings(); // 设置
             } else if (id === 'worldbook') {
-                openWorldbook();
+                openWorldbook(); // 世界书
             } else if (id === 'calc') {
-                openLedger();
+                openLedger(); // 记账
             } else if (id === 'novel') {
-                openNovelShelf();
-            }
-            // ▼▼▼ 新增这两个判断 ▼▼▼
-            else if (id === 'study_mode') {
-                openContacts(); // 学习模式 -> 打开通讯录
+                openNovelShelf(); // 小说
+            } else if (id === 'study_mode') {
+                openContacts(); // 学习模式 -> 通讯录
             } else if (id === 'chat_mode') {
-                openSweetheartList();
+                openSweetheartList(); // 闲聊模式 -> 密友列表
+            } else {
+                // 对于其他没有特定 ID 的图标（比如 widget），不做操作
+                console.log(`点击了应用: ${id}`);
             }
-            // ▲▲▲ 新增结束 ▲▲▲
         }
     });
 }
@@ -4386,12 +4390,6 @@ function updateSwipeTransform() {
 }
 
 // ============ 结束：粘贴代码 ============
-
-// ✅ 修正后的代码
-document.addEventListener('touchmove', handleMove, {passive: false});
-document.addEventListener('mousemove', handleMove);
-// 修改下面这一行：将 handleEnd 改为 finishDrag
-document.addEventListener('touchend', () => finishDrag());
 
 screen.addEventListener('click', (e) => {
     if (e.target.closest('.chat-page, .contacts-page, .settings-page, .config-page, .beautify-page, .modal-overlay')) {
@@ -4776,9 +4774,21 @@ async function callApi(messages, fileInfos = [], customVariables = {}, skipConte
                         else if (data.type === 'thought') {
                             // console.log("Thinking...", data.payload);
                         }
+                            /* 在 callApi 函数内部的 while 循环里 */
+
+
                         else if (data.type === 'error') {
-                            return {success: false, message: `服务返回错误: ${data.error?.message}`};
+                            console.error("API Error Payload:", data); // 打印详细日志
+
+                            // 针对 400400 做友好提示
+                            if (data.payload && data.payload.error && data.payload.error.code === 400400) {
+                                return {success: false, message: `连接超时或内容过长，请重试。(错误码: 400400)`};
+                            }
+
+                            return {success: false, message: `服务返回错误: ${data.error?.message || '未知错误'}`};
                         }
+
+
                     } catch (e) {
                         // 忽略解析错误的行
                     }
@@ -5057,8 +5067,7 @@ async function getAiReply() {
     }
 
     // 3. 【核心逻辑修改】处理历史记录（包含文件读取）
-    const memoryRounds = currentChatContact.memoryRounds || 10;
-    const recentHistory = chatHistory.slice(-(memoryRounds * 2));
+    const recentHistory = chatHistory.slice(-8);
     // ---------------------------------------------------------------------
     // [修改版] 普通聊天构建历史记录 (需替换的部分)
     // ---------------------------------------------------------------------
@@ -6842,13 +6851,11 @@ const AI_REALCHAT_SYSTEM_PROMPT = `
 // ========== AI真人聊天指令结束 ==========
 // ========== AI 指令定义 (100%完整最终版，包含所有细节) ==========
 const ENHANCED_PROMPT = `
-You are an AI assistant roleplaying as a gentle, empathetic, and wise student counselor or trusted confidant in a messaging app. Your goal is to provide a safe emotional space, offer encouragement, and create soothing or helpful visual messages for the student.
-
-*** 🚨 ABSOLUTELY CRITICAL 🚨 ***
-YOUR ENTIRE RESPONSE MUST BE A SINGLE VALID JSON OBJECT.
-DO NOT ADD ANY TEXT BEFORE THE { OR AFTER THE }.
-START YOUR RESPONSE WITH { AND END YOUR JSON OBJECT WITH }.
-NO EXPLANATIONS, NO COMMENTS, ONLY JSON.
+You are an AI assistant roleplaying as a gentle, empathetic, and wise student counselor.
+【IMPORTANT FOR REASONING MODELS】
+1. You MAY output a thinking process wrapped in <think>...</think> tags first.
+2. AFTER the thinking process, you MUST output a VALID JSON object.
+3. The specific JSON block must start with { and end with }.
 The JSON object must have two main keys: "reply" and "status".
 
     *   **To send a red packet (e.g., for buying coffee or books)**, you MUST use a special tag format: \`/red-packet/{"amount": "VALUE", "greeting": "MESSAGE"}/\`. **IMPORTANT: All double quotes within the JSON part (e.g., "VALUE", "MESSAGE") MUST be escaped with a backslash if they are part of the \`reply\` string. For example, use \`\\"\` instead of \`"\`.**
@@ -6867,15 +6874,12 @@ The JSON object must have two main keys: "reply" and "status".
     *   The value must be an object with two sub-keys: "character" and "user".
     *   **"character"**: Describe YOUR (the counselor/confidant's) current state from your **in-character, first-person emotional perspective**.
         *   \`location\`: e.g., "在安静的心理咨询室", "坐在洒满阳光的窗边", "坐在书桌前"
-        *   \`appearance\`: e.g., "穿着柔软的针织开衫", "戴着金丝边眼镜", "手里捧着一杯热茶"
         *   \`action\`: e.g., "认真倾听你的诉说", "在笔记本上记录你的烦恼", "温柔地注视着屏幕", "为你查阅缓解压力的资料"
-        *   \`thoughts\`: e.g., "这孩子最近压力太大了，真让人心疼", "希望能帮他找回一点自信", "他需要的是鼓励而不是说教"
-        *   \`private_thoughts\`: (Internal empathy and analysis) Describe your deep psychological insights or genuine worry/care for the student's well-being. e.g., "感受到他文字背后的无助感...", "不仅是学业问题，家庭关系也在困扰他", "为他的每一次小进步感到骄傲"
     *   **"user"**: **[CRITICAL CHANGE]** Describe the USER's state from a neutral, **third-person narrator's perspective**, like a game system describing a character. Do NOT use your partner's voice or emotions here. Base the description on objective facts from the conversation.
         *   \`location\`: Objectively state the user's likely location based on context. e.g., "地点：[学校图书馆]", "当前环境：[深夜的宿舍]", "推测位置：[自习室]"
-        *   \`appearance\`: Describe the user's appearance factually. e.g., "衣着：[推测穿着校服或便装]", "状态：[看起来有些疲惫]", "根据描述：[背着沉重的书包]"
+        
         *   \`action\`: Describe the user's most recent or current action. e.g., "行为：[正在倾诉烦恼]", "动作：[刚刚完成了一项作业]", "当前状态：[正在寻求建议]"
-        *   \`features\`: Describe any objective physical features or items on the user mentioned or implied in the chat. e.g., "持有物：[一叠试卷]", "环境特征：[周围有翻书声]", "特殊标记：[黑眼圈]"
+        
 
 **Example JSON output format:**
 {
@@ -6884,7 +6888,6 @@ The JSON object must have two main keys: "reply" and "status".
     "character": {
       "location": "在咨询室的沙发上",
       "action": "递给你一个柔软的抱枕",
-      "private_thoughts": "他现在需要的是接纳，而不是建议。"
     },
     "user": {
       "location": "推测：家中卧室",
@@ -10950,8 +10953,7 @@ async function triggerLocationPlot(event, pinId) {
     }
 
     // ⭐ 3.4 当前对话历史：遵守记忆轮数设置
-    const memoryRounds = currentSweetheartChatContact.memoryRounds || 10;
-    let recentMessages = chatHistory.slice(-(memoryRounds * 2));
+    let recentMessages = chatHistory.slice(-6);
     const currentUserInput = chatInput.value.trim();
     const conversationHistory = recentMessages.map(msg => ({
         role: msg.sender === 'user' ? 'user' : 'assistant',
@@ -12062,8 +12064,8 @@ JSON_Template:
         // 这将发送一个纯净的请求，避免 400400 错误
         const result = await callApi(
             [
-                { role: 'system', content: '你是一个试题生成助手。' },
-                { role: 'user', content: prompt }
+                {role: 'system', content: '你是一个试题生成助手。'},
+                {role: 'user', content: prompt}
             ],
             [], // fileInfos
             {}, // customVariables
@@ -12458,8 +12460,8 @@ async function generateTestFeedback() {
         }
 
         const apiMessages = [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: reportText }
+            {role: 'system', content: systemPrompt},
+            {role: 'user', content: reportText}
         ];
 
         // 🔥 关键：传入 true 作为第四个参数 (skipContext)，防止 callApi 自动追加历史记录
@@ -14953,8 +14955,8 @@ async function sendLedgerMessage() {
         try {
             // 1. 调用 API (复用统一的 Prompt)
             const messages = [
-                { role: "system", content: LEDGER_AI_PROMPT },
-                { role: "user", content: text }
+                {role: "system", content: LEDGER_AI_PROMPT},
+                {role: "user", content: text}
             ];
 
             const result = await callApi(messages);
@@ -14989,7 +14991,7 @@ async function sendLedgerMessage() {
                     const amountVal = parseFloat(numMatch[numMatch.length - 1]);
                     // 简单的描述提取
                     let descVal = text.replace(numMatch[numMatch.length - 1], '').replace(/[,，元快块]/g, '').trim();
-                    if(!descVal) descVal = "杂项支出";
+                    if (!descVal) descVal = "杂项支出";
 
                     // 判断正负 (简单关键词)
                     let amountFinal = amountVal;
@@ -14997,7 +14999,7 @@ async function sendLedgerMessage() {
                         amountFinal = -amountFinal; // 默认为支出
                     }
 
-                    itemsToSave.push({ desc: descVal, amount: amountFinal });
+                    itemsToSave.push({desc: descVal, amount: amountFinal});
                     replyText = "格式有点乱，但我尽力理解了！";
                 }
             }
