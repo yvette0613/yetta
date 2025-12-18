@@ -1479,35 +1479,48 @@
 
             <!-- 1. 顶部：资产卡片 & AI开关 -->
             <div class="ledger-summary-card">
-                <div class="ledger-header-row">
-                    <div class="ledger-month-selector">
-                        <span id="ledgerCurrentMonth">--月</span>
-                        <!-- 切换视图按钮 -->
-                        <span class="ledger-toggle-mode" onclick="toggleLedgerMode()">切换列表 📝</span>
+                <!-- 第一行：左侧月份 + 右侧所有操作按钮 (AI/切换/头像) -->
+                <div class="ledger-top-bar">
+                    <div class="ledger-month-display">
+                        <span id="ledgerCurrentMonth">12月</span>
+                        <span class="month-label">账本</span>
                     </div>
-                    <!-- AI模式切换开关 -->
-                    <div class="ledger-ai-switch" onclick="toggleLedgerAiMode()">
-                        <span class="ai-switch-label">✨ AI 记账</span>
-                        <div class="ai-toggle-btn" id="ledgerAiToggle">
-                            <div class="ai-toggle-circle"></div>
+                    <!-- 右侧操作区：使用 Flex 布局自动排列 -->
+                    <div class="ledger-controls">
+                        <!-- 联系人头像 (仅AI模式显示) -->
+                        <div class="ledger-contact-selector" id="ledgerContactSelector" onclick="chooseLedgerContact()" style="display:none;">
+                            <img id="ledgerContactAvatar" src="https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1760818188304_qdqqd_dzl9rm.png" alt="AI">
+                        </div>
+                       <!-- AI 开关 -->
+                        <div class="ledger-ai-switch" onclick="toggleLedgerAiMode()">
+                            <span class="ai-switch-label">AI</span>
+                            <div class="ai-toggle-btn" id="ledgerAiToggle">
+                                <div class="ai-toggle-circle"></div>
+                            </div>
+                        </div>
+                        <!-- 切换视图按钮 (精简文字) -->
+                        <div class="ledger-toggle-btn" onclick="toggleLedgerMode()">
+                            列表 📝
                         </div>
                     </div>
                 </div>
-                <div class="ledger-stats-row">
-                    <div class="stat-item">
-                        <span class="stat-label">收入</span>
-                        <span class="stat-num income" id="statIncome">0.00</span>
+                <!-- 第二行：三个数据指标 (收入/支出/结余) -->
+                <div class="ledger-stats-grid">
+                    <div class="stat-box">
+                        <span class="stat-title">收入</span>
+                        <span class="stat-value income" id="statIncome">0.00</span>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-label">支出</span>
-                        <span class="stat-num expense" id="statExpense">0.00</span>
+                    <div class="stat-box">
+                        <span class="stat-title">支出</span>
+                        <span class="stat-value expense" id="statExpense">0.00</span>
                     </div>
-                </div>
-                <div class="ledger-balance">
-                    <span>结余</span>
-                    <span id="statBalance">0.00</span>
+                    <div class="stat-box">
+                        <span class="stat-title">结余</span>
+                        <span class="stat-value balance" id="statBalance">0.00</span>
+                    </div>
                 </div>
             </div>
+
 
             <!-- 2. 模式一：对话记账区 (包含消息列表 + 底部输入框) -->
             <!-- ⚠️ 之前可能缺失了这一部分 -->

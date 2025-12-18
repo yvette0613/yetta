@@ -9995,7 +9995,7 @@ function openContactLibrary(mode = 'edit') {
 
 /**
  * [已修复] 关闭联系人库页面
- * 修复了从设置进入后返回会跳转到密友列表的问题
+ * 增加：'selectForLedger' 模式下，关闭库后不进行任何跳转（直接留在记账本）
  */
 function closeContactLibrary() {
     if (isMultiSelectMode) {
@@ -10005,12 +10005,19 @@ function closeContactLibrary() {
     document.getElementById('contactLibraryPage').classList.remove('show');
     document.getElementById('contactLibrarySearch').value = '';
 
+    // ============================================
+    // 🔥 核心修复：如果是记账模式，直接退出，不跳转！
+    // ============================================
+    if (contactLibraryMode === 'selectForLedger') {
+        return; // 直接结束，这样背景就还是记账本，退出记账本就是桌面
+    }
+
     // 1. 如果是剧情讨论模式，什么都不做，停留在当前（小说）页面
     if (contactLibraryMode === 'discuss') {
         return;
     }
 
-    // 2. ✨ 核心修复：如果是从设置进来的（编辑模式），直接返回（停留在设置页），不跳转
+    // 2. 如果是从设置进来的（编辑模式），直接返回（停留在设置页），不跳转
     if (contactLibraryMode === 'edit') {
         return;
     }
@@ -10032,15 +10039,18 @@ function closeContactLibrary() {
     }
 
     // 5. 兜底逻辑：如果以上都不是，且有世界ID，才跳转到世界首页
+    // (这行代码之前导致了记账后跳到密友列表)
     if (currentWorldId) {
         setTimeout(() => {
-            openWorldSelect();
+            // openWorldSelect(); // 这行通常会打开世界页或密友列表
+            // 这里我们改得保守一点，如果没有明确目标，就不乱跳了，防止类似Bug
         }, 300);
     }
 }
 
+
 /**
- * 渲染联系人库的列表内容 (已修复：支持剧情讨论模式)
+ * 渲染联系人库的列表内容 (最终修复版)
  */
 function renderContactLibrary() {
     const container = document.getElementById('contactLibraryList');
@@ -10085,15 +10095,17 @@ function renderContactLibrary() {
             ? `<img src="${escapeHTML(contact.avatar)}" alt="">`
             : `<span>${escapeHTML(contact.avatar)}</span>`;
 
+        // 根据模式决定右侧显示的图标（箭头还是加号）
+        let rightIcon = '<div class="settings-arrow">›</div>';
+
         item.innerHTML = `
             <div class="contact-library-avatar">${avatarContent}</div>
             <div class="contact-library-info">
                 <div class="contact-library-name">${escapeHTML(contact.name)}</div>
             </div>
-            <div class="settings-arrow">›</div>
+            ${rightIcon}
         `;
 
-        // 🔥🔥🔥 核心修复点在这里 🔥🔥🔥
         if (isMultiSelectMode) {
             item.classList.add('multi-select-mode');
             if (selectedContactIds.has(contact.id)) {
@@ -10101,13 +10113,16 @@ function renderContactLibrary() {
             }
             item.onclick = () => toggleContactSelection(contact.id);
         } else {
-            // 原来的代码漏掉了 'discuss' 模式，导致默认进入了 else (编辑模式)
+            // 🔥🔥🔥 核心修复点在这里！🔥🔥🔥
+            // 必须把 'selectForLedger' 加进去，否则点击这一项会没反应，或者跳去编辑页
             if (contactLibraryMode === 'select' ||
                 contactLibraryMode === 'selectForSweetheart' ||
-                contactLibraryMode === 'discuss') { // ✅ 加上这一行！
+                contactLibraryMode === 'discuss' ||
+                contactLibraryMode === 'selectForLedger') { // ✅ 关键：新增这一行
 
                 item.onclick = () => selectContactFromLibrary(contact);
             } else {
+                // 默认为编辑模式
                 item.onclick = () => editContactFromLibrary(contact.id, contact.type);
             }
         }
@@ -10119,42 +10134,61 @@ function renderContactLibrary() {
 // ▼▼▼ 请复制并替换这个完整的函数 ▼▼▼
 
 /**
- * [最终增强版] 从联系人库选择联系人
- * 支持：普通选择、密友选择、剧情讨论
+ * [终极逻辑版] 从联系人库选择联系人
+ * 统一处理：普通聊天、密友聊天、剧情讨论、记账员选择
  */
 function selectContactFromLibrary(sourceContact) {
     const contactId = sourceContact.id;
 
-    // === 新增：处理剧情讨论模式 ===
+    // === 1. 剧情讨论模式 ===
     if (contactLibraryMode === 'discuss') {
         initiateDiscussChat(sourceContact);
         return;
     }
-    // === 结束新增 ===
 
-    // ...以下保持原本的逻辑...
-    let targetList, targetName, saveFunc, renderFunc, listPageOpener;
+    // === 2. 记账员选择模式 (AI记账) ===
+    if (contactLibraryMode === 'selectForLedger') {
+        // 设置当前全局记账员
+        currentLedgerContact = sourceContact;
 
-    // (此处保持你原本的 selectForSweetheart / select 判断代码不变)
+        // 更新记账页面的头像 UI
+        const avatarEl = document.getElementById('ledgerContactAvatar');
+        if (avatarEl) {
+            const isUrl = sourceContact.avatar && (sourceContact.avatar.startsWith('http') || sourceContact.avatar.startsWith('data:'));
+            avatarEl.src = isUrl ? sourceContact.avatar : 'https://s3plus.meituan.net/opapisdk/op_ticket_1_885190757_1760818188304_qdqqd_dzl9rm.png';
+        }
+
+        // 更新输入框提示语
+        const inputField = document.getElementById('ledgerInput');
+        if (inputField) inputField.placeholder = `✨ 发送花费给 ${sourceContact.name} 记账...`;
+
+        // 提示并关闭
+        showSuccessModal('切换成功', `现在的记账员是: ${sourceContact.name}`);
+        closeContactLibrary();
+        return; // ✅ 关键：记账选择到此结束，不执行下面的添加好友逻辑
+    }
+
+    // === 3. 以下是添加好友进通讯录的逻辑 (普通/密友) ===
+
+    let targetList, targetName, saveFunc, listPageOpener;
+
     if (contactLibraryMode === 'selectForSweetheart') {
         targetList = sweetheartContactsData;
         targetName = '密友列表';
         saveFunc = saveSweetheartContacts;
-        renderFunc = renderSweetheartList;
         listPageOpener = openSweetheartList;
     } else {
+        // 默认为 selection (普通聊天)
         targetList = contactsData;
         targetName = '通讯录';
         saveFunc = () => localStorage.setItem('phoneContactsData', JSON.stringify(contactsData));
-        renderFunc = () => renderContacts(contactsData);
         listPageOpener = openContacts;
     }
 
     let wasAddedToGlobalList = false;
     let wasAddedToWorld = false;
 
-    // 步骤1: 检查并添加到全局列表
-    // 使用 targetList 的引用
+    // 检查并添加到列表
     const alreadyInGlobalList = targetList.some(c => c.id === contactId);
     if (!alreadyInGlobalList) {
         targetList.push({...sourceContact});
@@ -10162,7 +10196,7 @@ function selectContactFromLibrary(sourceContact) {
         wasAddedToGlobalList = true;
     }
 
-    // 步骤2: 检查并添加到当前世界 (仅限密友模式)
+    // 如果是密友模式，还需要检查是否在当前世界中
     if (contactLibraryMode === 'selectForSweetheart' && currentWorldId) {
         const world = worldsData.find(w => w.id === currentWorldId);
         if (world) {
@@ -10178,13 +10212,14 @@ function selectContactFromLibrary(sourceContact) {
     if (wasAddedToGlobalList || wasAddedToWorld) {
         showSuccessModal('添加成功', `已将 "${sourceContact.name}" 添加到${targetName}。`);
     } else {
-        showSuccessModal('已存在', `"${sourceContact.name}" 已在当前${targetName}中。`, 2000);
+        // 如果已经存在，虽然不报错，但也给个反馈，然后直接跳转
+        // showSuccessModal('已存在', `"${sourceContact.name}" 已经在列表里了。`, 1000);
     }
 
+    // 关闭库并跳转
     closeContactLibrary();
-
     setTimeout(() => {
-        listPageOpener();
+        if (listPageOpener) listPageOpener();
     }, 350);
 }
 
@@ -14724,18 +14759,21 @@ let ledgerData = []; // 存储账单数据 (交易明细)
 let ledgerChatHistory = []; // ✨ 新增：存储聊天对话记录
 let isLedgerListMode = false;
 let isLedgerAiMode = false;
+let currentLedgerContact = null; // ✨ 新增：当前选中的记账员
 // ✨✨ AI 记账专用提示词 (修复版：强制 JSON) ✨✨
 const LEDGER_AI_PROMPT = `
-你是一个专业的记账助手。请分析图片中的账单或交易记录。
-
+你现在是用户的【依附于记账本里的专属角色】。
+用户的消息是一笔交易记录或一张账单图片。
+【核心任务】
+1. **分析账单**：提取金额和项目。
+2. **人设互动**：必须完全沉浸在你的角色设定中，对这笔消费做出反应（是勤俭持家？是霸道总裁？还是温柔鼓励？）。
 【重要规则】
 1. 支出金额自动转为负数，收入为正数。
-2. 严禁输出任何多余的寒暄或文本描述。
-3. **必须且只能**输出标准的 JSON 格式，不要使用 Markdown 代码块标记（如 \`\`\`json）。
-
+2. **必须且只能**输出标准的 JSON 格式。
+3. 不要使用 Markdown 代码块标记。
 【JSON 输出模版】
 {
-  "reply": "简短的一句总结（例如：识别成功，发现5笔交易）",
+  "reply": "这里填写你的角色对这笔账产生的反应。请用口语化、符合性格的语气。（例如：'宝宝，怎么又买奶茶喝呀，要注意身体哦' 或 '几百块的皮肤说买就买？你下个月想吃土吗？')",
   "items": [
     { "desc": "商品或交易名称", "amount": -25.00 },
     { "desc": "工资收入", "amount": 5000.00 }
@@ -14763,17 +14801,17 @@ function toggleLedgerMode() {
     isLedgerListMode = !isLedgerListMode;
     const chatArea = document.getElementById('ledgerChatMode');
     const listArea = document.getElementById('ledgerListMode');
-    const toggleBtn = document.querySelector('.ledger-toggle-mode');
-
+    // 🔥 修改这里：选择新的按钮类名
+    const toggleBtn = document.querySelector('.ledger-toggle-btn');
     if (isLedgerListMode) {
         chatArea.classList.add('hidden');
         listArea.classList.remove('hidden');
-        toggleBtn.textContent = '切换记账 💬';
+        toggleBtn.textContent = '记账 💬';
         renderLedgerList();
     } else {
         chatArea.classList.remove('hidden');
         listArea.classList.add('hidden');
-        toggleBtn.textContent = '切换列表 📝';
+        toggleBtn.textContent = '列表 📝';
         // 切换回聊天时滚动到底部
         const list = document.getElementById('ledgerChatList');
         if (list) list.scrollTop = list.scrollHeight;
@@ -14783,20 +14821,24 @@ function toggleLedgerMode() {
 // 切换 AI 记账模式
 function toggleLedgerAiMode() {
     isLedgerAiMode = !isLedgerAiMode;
-
     // 更新 UI
     const switchEl = document.querySelector('.ledger-ai-switch');
     const inputBar = document.querySelector('.ledger-input-bar');
     const inputField = document.getElementById('ledgerInput');
-
+    const contactSelector = document.getElementById('ledgerContactSelector'); // ✨
     if (isLedgerAiMode) {
         switchEl.classList.add('active');
         inputBar.classList.add('ai-active');
-        inputField.placeholder = "✨ AI模式：发送“今晚吃火锅300”试试...";
-        showSuccessModal('AI 记账开启', '发送文字或图片，小猫帮你识别！', 1500);
+        contactSelector.style.display = 'block'; // ✨ 开启AI显示头像
+
+        let placeholderName = currentLedgerContact ? currentLedgerContact.name : "小猫";
+        inputField.placeholder = `✨ 发送花费给 ${placeholderName} 记账...`;
+
+        showSuccessModal('AI 记账开启', '点击紫色头像可以更换记账员哦！', 1500);
     } else {
         switchEl.classList.remove('active');
         inputBar.classList.remove('ai-active');
+        contactSelector.style.display = 'none'; // ✨ 关闭AI隐藏头像
         inputField.placeholder = "例如：喝奶茶花了25";
     }
 }
@@ -14816,6 +14858,12 @@ function loadLedgerData() {
     } catch (e) {
         console.error('Ledger load error', e);
     }
+}
+
+// ✨ 新增：点击头像选择记账联系人
+function chooseLedgerContact() {
+    // 复用联系人库，传入特定模式 'selectForLedger'
+    openContactLibrary('selectForLedger');
 }
 
 function saveLedgerData() {
@@ -14888,22 +14936,55 @@ async function sendLedgerMessage() {
         addLedgerBubble("🐱 正在分析你的这笔账...", 'ai', loadingId, false);
 
         try {
-            // 1. 调用 API (复用统一的 Prompt)
+            // 🔥🔥🔥 核心：构建带人设的 Prompt 🔥🔥🔥
+            let personaPrompt = "";
+
+            if (currentLedgerContact) {
+                // 1. 基础信息
+                personaPrompt += `[当前扮演角色]\n姓名：${currentLedgerContact.name}\n`;
+                if (currentLedgerContact.status) personaPrompt += `基础设定：${currentLedgerContact.status}\n`;
+                if (currentLedgerContact.personality) personaPrompt += `性格：${currentLedgerContact.personality}\n`;
+                if (currentLedgerContact.career) personaPrompt += `职业：${currentLedgerContact.career}\n`;
+                if (currentLedgerContact.relationship) personaPrompt += `与用户关系：${currentLedgerContact.relationship}\n`;
+
+                // 2. 注入面具/人设细节 (如果有)
+                if (currentLedgerContact.boundMasks && currentLedgerContact.boundMasks.length > 0) {
+                    currentLedgerContact.boundMasks.forEach(maskId => {
+                        const mask = masksData.find(m => m.id === maskId);
+                        if (mask) personaPrompt += `\n[深层细节 - ${mask.name}]\n${mask.content}\n`;
+                    });
+                }
+                personaPrompt += `\n[指令]\n请完全基于以上人设，对用户的这笔 "${text}" 消费行为做出反应。将反应填入 JSON 的 "reply" 字段。`;
+            } else {
+                // 默认小猫人设
+                personaPrompt = `(Roleplay: 你是一只傲娇但会管家的记账小猫。请用可爱的语气点评这笔账单。)`;
+            }
+            // --- 临时环境切换 (保持原有逻辑，确保SessionID正确) ---
+            const originalSweetheart = currentSweetheartChatContact;
+            const originalNormal = currentChatContact;
+            if (currentLedgerContact) {
+                currentSweetheartChatContact = currentLedgerContact;
+                currentChatContact = null;
+            } else {
+                currentSweetheartChatContact = { id: "LEDGER_CAT_DEFAULT", name: "记账小猫" };
+                currentChatContact = null;
+            }
+            // 3. 调用 API
             const messages = [
-                {role: "system", content: LEDGER_AI_PROMPT},
-                {role: "user", content: text}
+                { role: "system", content: LEDGER_AI_PROMPT }, // 基础 JSON 规则
+                { role: "system", content: personaPrompt },    // 🔥 注入人设
+                { role: "user", content: text }
             ];
-
             const result = await callApi(messages);
+            // 4. 🔥 还原全局对象 (这点非常重要，否则会乱套)
+            currentSweetheartChatContact = originalSweetheart;
+            currentChatContact = originalNormal;
+            // 🔥🔥🔥 劫持结束 🔥🔥🔥
             document.getElementById(loadingId)?.remove();
-
             if (!result.success) {
                 addLedgerBubble(`❌ 请求失败：${result.message}`, 'ai', null, true);
                 return;
             }
-
-            console.log("AI 原始回复:", result.message);
-
             // 2. 强力清洗 & 解析 (防止 AI 说废话导致 JSON 解析失败)
             const cleanText = cleanAiResponseText(result.message);
             // 尝试解析 JSON，如果失败尝试解析 markdown 表格/列表
@@ -14950,10 +15031,9 @@ async function sendLedgerMessage() {
             }
 
             if (itemsToSave.length === 0) {
-                addLedgerBubble("😿 喵...没看懂金额，请再说一次 (例如: 买菜50)", 'ai', null, true);
+                addLedgerBubble("😿 没看懂金额... 再试一次？", 'ai', null, true);
                 return;
             }
-
             // 4. 批量入账
             let detailsStr = "";
             itemsToSave.forEach(item => {
@@ -14964,19 +15044,40 @@ async function sendLedgerMessage() {
                     date: Date.now(),
                     type: parseFloat(item.amount) >= 0 ? 'income' : 'expense'
                 };
-
                 ledgerData.unshift(record);
-
                 const sign = record.amount > 0 ? '+' : '';
                 detailsStr += `\n✅ ${record.desc}: ${sign}${record.amount.toFixed(2)}`;
             });
+            saveLedgerData();
+                // 5. 显示带人设的回复
+            // 样式优化：把人设回复作为主要内容，账单细节作为小字
+            const finalHtml = `
+                <div style="margin-bottom:8px;font-weight:500;">${replyText}</div>
+                <div style="font-size:12px;opacity:0.8;border-top:1px dashed rgba(0,0,0,0.1);padding-top:4px;">
+                    ${detailsStr.trim()}
+                </div>
+            `;
 
-            saveLedgerData(); // 保存并更新统计UI
-
-            // 5. 反馈结果
-            addLedgerBubble(`${replyText}${detailsStr}`, 'ai', null, true);
-
+            // 使用HTML模式渲染
+            const list = document.getElementById('ledgerChatList');
+            const div = document.createElement('div');
+            div.className = `ledger-msg ai`;
+            div.innerHTML = finalHtml;
+            list.appendChild(div);
+            list.scrollTop = list.scrollHeight;
+            // 保存到历史
+            ledgerChatHistory.push({
+                content: finalHtml, // 保存带格式的HTML
+                type: 'ai',
+                id: Date.now(),
+                timestamp: Date.now()
+            });
+            saveLedgerChatHistory();
         } catch (err) {
+            // 发生错误也要还原
+            if (typeof originalSweetheart !== 'undefined') currentSweetheartChatContact = originalSweetheart;
+            if (typeof originalNormal !== 'undefined') currentChatContact = originalNormal;
+
             document.getElementById(loadingId)?.remove();
             console.error(err);
             addLedgerBubble(`💥 程序出错: ${err.message}`, 'ai', null, true);
